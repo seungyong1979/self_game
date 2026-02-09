@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>🎮 Game Collection</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      margin: 0;
+      padding: 30px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 25px;
+    }
+    .game-card {
+      background: #222;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+      transition: 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      color: white;
+    }
+    .game-card:hover {
+      transform: scale(1.03);
+      background: #333;
+    }
+    .thumbnail {
+      height: 160px;
+      background: linear-gradient(to bottom right, #444, #111);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .game-info {
+      padding: 15px;
+    }
+    .game-title {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .game-desc {
+      font-size: 14px;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 My HTML Game Collection</h1>
+  <div class="game-grid">
+    <a class="game-card" href="99days_survival_v16.html">
+      <div class="thumbnail">99일 살아남기</div>
+      <div class="game-info">
+        <div class="game-title">99일 살아남기</div>
+        <div class="game-desc">제한된 시간 동안 생존하는 서바이벌 게임입니다. <br>홍유화가 처음으로 만든 게임. 2026.02.08.</div>
+      </div>
+    </a>
+
+    <a class="game-card" href="fishing_game_full.html">
+      <div class="thumbnail">낚시게임</div>
+      <div class="game-info">
+        <div class="game-title">낚시게임</div>
+        <div class="game-desc">물고기를 낚으며 점수를 얻는 힐링 낚시 게임입니다.<br>홍리하가 두번째로 만든 게임. 2026.02.08</div>
+      </div>
+    </a>
+
+    <a class="game-card" href="hamburger_full_game.html">
+      <div class="thumbnail">햄버거를 피해라! 1</div>
+      <div class="game-info">
+        <div class="game-title">햄버거를 피해라! 1</div>
+        <div class="game-desc">토끼가 햄버거를 피하고 보석을 모으는 게임입니다.<br>홍리하가 처음으로 만든 게임. 2026.02.08.</div>
+      </div>
+    </a>
+
+    <a class="game-card" href="hamburger_game_human_faststage.html">
+      <div class="thumbnail">H햄버거를 피해라! 2</div>
+      <div class="game-info">
+        <div class="game-title">햄버거를 피해라! 2</div>
+        <div class="game-desc">사람이 햄버거를 피하고 보석을 모으는 게임입니다.<br>홍리하가 처음으로 만든 게임의 업그레이드 버전. 2026.02.08.</div>
+      </div>
+    </a>
+
+    <a class="game-card" href="rabbit_game_with_audio.html">
+      <div class="thumbnail">토끼를 잡아서 부자가 되자!</div>
+      <div class="game-info">
+        <div class="game-title">토끼를 잡아서 부자가 되자!</div>
+        <div class="game-desc">토끼 캐릭터와 함께 사운드가 포함된 게임입니다.<br>홍유화가 두번째로 만든 게임. 2026.02.08</div>
+      </div>
+    </a>
+  </div>
+</body>
+</html>

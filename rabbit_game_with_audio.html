@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rabbit Catch — Upgraded Web Build</title>
+  <style>
+    html, body { margin:0; padding:0; height:100%; background:#111; color:#eee; font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans KR",sans-serif; }
+    #wrap { display:flex; flex-direction:column; height:100%; }
+    #topbar{
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+      padding:10px 12px; border-bottom:1px solid #2a2a2a; background:#151515;
+      user-select:none;
+    }
+    .pill{ padding:6px 10px; border:1px solid #2a2a2a; border-radius:999px; background:#0f0f0f; font-size:14px; }
+    button{
+      padding:8px 12px; border-radius:10px; border:1px solid #2a2a2a; background:#1b1b1b; color:#eee;
+      cursor:pointer; font-weight:700;
+    }
+    button:disabled{ opacity:0.42; cursor:not-allowed; }
+    #help { margin-left:auto; opacity:0.85; font-size:13px; }
+    #game { flex:1; display:block; width:100%; height:100%; cursor:crosshair;
+      background:linear-gradient(#2a5, #142);
+    }
+    #toast{
+      position:fixed; left:12px; bottom:12px; right:12px;
+      padding:10px 12px; border-radius:12px; background:rgba(0,0,0,0.55);
+      border:1px solid rgba(255,255,255,0.15); font-size:13px;
+      backdrop-filter: blur(6px);
+      max-width:980px;
+    }
+
+    /* Modal (Shop) */
+    #modalBackdrop{
+      position:fixed; inset:0; background:rgba(0,0,0,0.65);
+      display:none; align-items:center; justify-content:center; padding:16px;
+    }
+    #modal{
+      width:min(920px, 100%); max-height:min(760px, 92vh); overflow:auto;
+      background:#101010; border:1px solid #2a2a2a; border-radius:16px;
+      box-shadow:0 18px 60px rgba(0,0,0,0.55);
+    }
+    #modalHeader{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 14px; border-bottom:1px solid #242424;
+    }
+    #modalHeader h2{ margin:0; font-size:16px; letter-spacing:0.2px; }
+    #modalBody{ padding:14px; }
+    .grid{
+      display:grid; grid-template-columns: 1fr 1fr; gap:12px;
+    }
+    @media (max-width: 820px){ .grid{ grid-template-columns:1fr; } }
+    .card{
+      border:1px solid #252525; border-radius:14px; background:#0d0d0d;
+      padding:12px;
+    }
+    .cardTitle{ display:flex; justify-content:space-between; gap:12px; }
+    .cardTitle b{ font-size:15px; }
+    .muted{ opacity:0.78; font-size:13px; line-height:1.35; }
+    .row{ display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+    .price{ font-weight:800; }
+    .tag{
+      padding:3px 8px; border-radius:999px; border:1px solid #2a2a2a; background:#141414;
+      font-size:12px; opacity:0.9;
+    }
+    .danger{ color:#ffb3b3; }
+    .ok{ color:#b7ffb7; }
+    .sep{ height:1px; background:#242424; margin:12px 0; }
+  </style>
+</head>
+<body>
+<div id="wrap">
+  <div id="topbar">
+    <div class="pill">라운드: <span id="round">1</span></div>
+    <div class="pill">잡은 토끼: <span id="caught">0</span> / 10</div>
+    <div class="pill">돈: $<span id="money">0</span></div>
+    <div class="pill">탄약: <span id="ammo">6</span> / <span id="ammoMax">6</span></div>
+    <div class="pill">스폰: <span id="spawn">7</span></div>
+
+    <button id="reloadBtn">재장전 (R)</button>
+    <button id="sellBtn" disabled>10마리 판매 (+$100)</button>
+    <button id="nextRoundBtn" disabled>다음 라운드 ▶</button>
+    <button id="shopBtn">상점 (B)</button>
+    <button id="bgmBtn">BGM: OFF</button>
+
+    <div id="help">클릭=발사 · R=재장전 · SHIFT=집중(슬로우, 에너지) · B=상점</div>
+  </div>
+  <canvas id="game"></canvas>
+</div>
+
+<div id="toast">
+  <div><b>요약</b></div>
+  <div class="muted">
+    토끼는 RUN(도망: 빠름/맞추기 어려움) ↔ REST(잠깐 쉼: 느림/맞추기 쉬움) 상태를 반복합니다.
+    업그레이드는 상점에서 구매하며, <b>구매한 업그레이드 수만큼</b> 다음 라운드 난이도(속도↑, REST 확률↓, REST 시간↓)가 추가로 상승합니다.
+    장애물(바위/풀숲)이 랜덤 생성되며, 토끼는 장애물을 피하거나 튕깁니다.
+  </div>
+</div>
+
+<!-- Shop Modal -->
+<div id="modalBackdrop" role="dialog" aria-modal="true">
+  <div id="modal">
+    <div id="modalHeader">
+      <h2>상점 / 업그레이드</h2>
+      <div class="row">
+        <div class="tag">돈: $<span id="shopMoney">0</span></div>
+        <button id="closeShopBtn">닫기 (ESC)</button>
+      </div>
+    </div>
+    <div id="modalBody">
+      <div class="muted">
+        아래 업그레이드는 영구(세이브)입니다. “다음 라운드 ▶”로 라운드를 넘기면, 라운드 난이도 스케일이 적용됩니다.
+      </div>
+      <div class="sep"></div>
+
+      <div class="grid" id="shopGrid"></div>
+
+      <div class="sep"></div>
+      <div class="row">
+        <button id="resetBtn" class="danger">세이브 초기화</button>
+        <span class="muted">초기화하면 업그레이드/돈/라운드가 리셋됩니다.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ========== Canvas setup ==========
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  function resize() {
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  const rect = () => canvas.getBoundingClientRect();
+  const W = () => rect().width;
+  const H = () => rect().height;
+
+  // ========== UI refs ==========
+  const elRound = document.getElementById("round");
+  const elCaught = document.getElementById("caught");
+  const elMoney = document.getElementById("money");
+  const elAmmo = document.getElementById("ammo");
+  const elAmmoMax = document.getElementById("ammoMax");
+  const elSpawn = document.getElementById("spawn");
+
+  const reloadBtn = document.getElementById("reloadBtn");
+  const sellBtn = document.getElementById("sellBtn");
+  const nextRoundBtn = document.getElementById("nextRoundBtn");
+  const shopBtn = document.getElementById("shopBtn");
+  const bgmBtn = document.getElementById("bgmBtn");
+
+  const modalBackdrop = document.getElementById("modalBackdrop");
+  const closeShopBtn = document.getElementById("closeShopBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const shopMoney = document.getElementById("shopMoney");
+  const shopGrid = document.getElementById("shopGrid");
+
+  // ========== Helpers ==========
+
+  // ========== Audio (WebAudio SFX + simple BGM) ==========
+  let audioCtx = null;
+  let bgmOn = false;
+  let bgmTimer = null;
+
+  function getAC(){
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    }
+    return audioCtx;
+  }
+
+  function playGunShot(){
+    const ac = getAC();
+    const t = ac.currentTime;
+
+    // noise burst
+    const bufferSize = ac.sampleRate * 0.08;
+    const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++){
+      data[i] = (Math.random()*2-1) * Math.exp(-i/600);
+    }
+    const noise = ac.createBufferSource();
+    noise.buffer = buffer;
+
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(0.6, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t+0.08);
+
+    noise.connect(gain);
+    gain.connect(ac.destination);
+
+    // low boom
+    const osc = ac.createOscillator();
+    osc.type="sine";
+    osc.frequency.setValueAtTime(120, t);
+    osc.frequency.exponentialRampToValueAtTime(60, t+0.12);
+
+    const g2 = ac.createGain();
+    g2.gain.setValueAtTime(0.35, t);
+    g2.gain.exponentialRampToValueAtTime(0.001, t+0.14);
+
+    osc.connect(g2); g2.connect(ac.destination);
+
+    noise.start(t);
+    noise.stop(t+0.08);
+    osc.start(t);
+    osc.stop(t+0.14);
+  }
+
+  function playReload(){
+    const ac = getAC();
+    const t = ac.currentTime;
+
+    const osc = ac.createOscillator();
+    osc.type="square";
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.setValueAtTime(330, t+0.06);
+
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.15, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t+0.18);
+
+    osc.connect(g); g.connect(ac.destination);
+    osc.start(t);
+    osc.stop(t+0.18);
+  }
+
+  // Simple chiptune-like loop (midi-ish)
+  const melody = [440, 494, 523, 587, 523, 494, 440, 392];
+  let melodyStep = 0;
+
+  function startBGM(){
+    if(bgmTimer) return;
+    bgmOn = true;
+    bgmBtn.textContent = "BGM: ON";
+
+    const ac = getAC();
+    bgmTimer = setInterval(()=>{
+      const t = ac.currentTime;
+      const freq = melody[melodyStep % melody.length];
+      melodyStep++;
+
+      const osc = ac.createOscillator();
+      osc.type="triangle";
+      osc.frequency.value = freq;
+
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.05, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+0.25);
+
+      osc.connect(g); g.connect(ac.destination);
+      osc.start(t);
+      osc.stop(t+0.25);
+    }, 260);
+  }
+
+  function stopBGM(){
+    bgmOn = false;
+    bgmBtn.textContent = "BGM: OFF";
+    if(bgmTimer){
+      clearInterval(bgmTimer);
+      bgmTimer = null;
+    }
+  }
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rand = (a, b) => a + Math.random() * (b - a);
+
+  // ========== Save/Load ==========
+  const SAVE_KEY = "rabbitcatch_v2_save";
+  function defaultSave(){
+    return {
+      money: 0,
+      round: 1,
+      upgradesBought: 0, // total count purchased (for difficulty bump)
+      upg: {
+        aim: 0,
+        ammo: 0,
+        price: 0,
+        spawn: 0,
+      }
+    };
+  }
+  function load(){
+    try{
+      const raw = localStorage.getItem(SAVE_KEY);
+      if(!raw) return defaultSave();
+      const s = JSON.parse(raw);
+      // shallow validation
+      if(typeof s.money!=="number" || typeof s.round!=="number" || !s.upg) return defaultSave();
+      if(typeof s.upgradesBought!=="number") s.upgradesBought = 0;
+      for(const k of ["aim","ammo","price","spawn"]){
+        if(typeof s.upg[k]!=="number") s.upg[k]=0;
+      }
+      return s;
+    }catch{
+      return defaultSave();
+    }
+  }
+  function saveNow(){
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+  }
+  let save = load();
+
+  // ========== Game state ==========
+  let money = save.money;
+  let round = save.round;
+  let caught = 0; // current inventory for selling (0..10+)
+  let soldThisRound = false;
+
+  // base stats
+  const base = {
+    ammoMax: 6,
+    spawn: 7,
+    sellPrice: 100, // per 10 rabbits
+    hitRadius: 22,
+  };
+
+  // focus mechanic (optional)
+  let focus = false;
+  let focusEnergy = 1.0;
+  const focusDrain = 0.35;
+  const focusRegen = 0.22;
+
+  // entities
+  let rabbits = [];
+  let obstacles = [];
+  let particles = []; // hit effects
+
+  // mouse
+  const mouse = { x: W()/2, y: H()/2 };
+  canvas.addEventListener("mousemove", (e) => {
+    const r = rect();
+    mouse.x = e.clientX - r.left;
+    mouse.y = e.clientY - r.top;
+  });
+
+  // ========== Upgrades ==========
+  // pricing curves are intentionally simple and predictable.
+  function upgPriceAim(lvl){ return 60 + lvl*55; }        // aim assist
+  function upgPriceAmmo(lvl){ return 80 + lvl*70; }       // ammo cap
+  function upgPriceSell(lvl){ return 90 + lvl*85; }       // sell price
+  function upgPriceSpawn(lvl){ return 120 + lvl*110; }    // spawn count
+
+  function currentAmmoMax(){
+    return base.ammoMax + save.upg.ammo * 2;
+  }
+  function currentSpawnCount(){
+    return base.spawn + save.upg.spawn * 2;
+  }
+  function currentSellPrice(){
+    return base.sellPrice + save.upg.price * 40;
+  }
+  function aimBonus(){
+    // + hit radius in pixels
+    return save.upg.aim * 3.5;
+  }
+
+  // ========== Difficulty scaling ==========
+  // Round scaling + upgrade-driven scaling: buying upgrades makes future rounds harder.
+  function difficulty(){
+    const r = Math.max(1, round);
+    // base progression: mild but noticeable
+    const baseSpeedMult = 1 + (r-1)*0.06;          // +6% per round
+    const baseRestProbMult = Math.pow(0.985, r-1); // slowly reduces rest chance
+    const baseRestDurMult  = Math.pow(0.985, r-1); // slowly reduces rest duration
+
+    // purchase-driven bump: each upgrade bought increases speed and reduces rests next round
+    const u = Math.max(0, save.upgradesBought);
+    const upgSpeedMult = 1 + u*0.03;               // +3% per upgrade bought
+    const upgRestProbMult = Math.pow(0.97, u);     // rest chance down
+    const upgRestDurMult  = Math.pow(0.97, u);     // rest window shorter
+
+    return {
+      speedMult: baseSpeedMult * upgSpeedMult,
+      restProbMult: baseRestProbMult * upgRestProbMult,
+      restDurMult: baseRestDurMult * upgRestDurMult
+    };
+  }
+
+  // ========== Obstacles ==========
+  function generateObstacles(){
+    const w = W(), h = H();
+    const count = clamp(3 + Math.floor(round/2), 3, 9);
+    const obs = [];
+    for(let i=0;i<count;i++){
+      const type = Math.random() < 0.55 ? "ROCK" : "BUSH";
+      const r = rand(18, 44) * (type==="ROCK" ? 1.1 : 1.0);
+      const x = rand(r+20, w-r-20);
+      const y = rand(r+80, h-r-20);
+      // avoid stacking too much
+      let ok = true;
+      for(const o of obs){
+        const d = Math.hypot(o.x-x, o.y-y);
+        if(d < o.r + r + 26){ ok = false; break; }
+      }
+      if(!ok){ i--; continue; }
+      obs.push({ type, x, y, r });
+    }
+    return obs;
+  }
+
+  function resolveCircleCollision(entity, obs){
+    // entity is circle (x,y,size)
+    const dx = entity.x - obs.x;
+    const dy = entity.y - obs.y;
+    const dist = Math.hypot(dx, dy) || 0.0001;
+    const minDist = entity.size + obs.r;
+    if(dist < minDist){
+      // push out
+      const nx = dx / dist, ny = dy / dist;
+      const overlap = (minDist - dist) + 0.5;
+      entity.x += nx * overlap;
+      entity.y += ny * overlap;
+
+      // bounce velocity if present
+      if("vx" in entity){
+        const dot = entity.vx*nx + entity.vy*ny;
+        entity.vx -= 2*dot*nx;
+        entity.vy -= 2*dot*ny;
+        // dampen a bit for bushes
+        const damp = obs.type==="BUSH" ? 0.72 : 0.88;
+        entity.vx *= damp; entity.vy *= damp;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // ========== Rabbits ==========
+  function newRabbit(){
+    const w = W(), h = H();
+    const size = rand(14, 20);
+
+    let x = rand(size+10, w-size-10);
+    let y = rand(size+80, h-size-10);
+
+    // avoid spawning inside obstacles
+    for(let tries=0; tries<20; tries++){
+      let bad = false;
+      for(const o of obstacles){
+        if(Math.hypot(x-o.x, y-o.y) < o.r + size + 12){ bad = true; break; }
+      }
+      if(!bad) break;
+      x = rand(size+10, w-size-10);
+      y = rand(size+80, h-size-10);
+    }
+
+    const diff = difficulty();
+    const angle = rand(0, Math.PI*2);
+    const speed = rand(180, 265) * diff.speedMult;
+
+    return {
+      x, y, size,
+      vx: Math.cos(angle)*speed,
+      vy: Math.sin(angle)*speed*0.45,
+      state: Math.random() < 0.7 ? "RUN" : "REST",
+      stateT: rand(0.45, 1.7),
+      zigT: rand(0.05, 0.18),
+      // AI burst params (run only): sudden accel/decel
+      burstT: rand(0.35, 1.2),
+      burstK: rand(0.65, 1.5),  // multiplier
+      alive: true,
+      hitFlash: 0
+    };
+  }
+
+  function populateRabbits(){
+    const n = currentSpawnCount();
+    rabbits = [];
+    for(let i=0;i<n;i++) rabbits.push(newRabbit());
+  }
+
+  function respawnRabbit(i){
+    rabbits[i] = newRabbit();
+  }
+
+  // ========== Shooting ==========
+  let ammoMax = currentAmmoMax();
+  let ammo = ammoMax;
+
+  function shoot(){
+    if (ammo <= 0) return;
+    ammo--;
+    playGunShot();
+    updateUI();
+
+    const diff = difficulty();
+    const baseHit = base.hitRadius + aimBonus();
+
+    let hitIdx = -1;
+    for (let i=0;i<rabbits.length;i++){
+      const r = rabbits[i];
+      if (!r.alive) continue;
+
+      // harder while RUN: smaller effective hit radius
+      // and when difficulty increases, RUN becomes even tighter.
+      const runTighten = clamp(0.55 - (diff.speedMult-1)*0.06, 0.38, 0.55);
+      const restBoost   = clamp(1.25 - (diff.speedMult-1)*0.02, 1.05, 1.25);
+
+      const stateMultiplier = (r.state === "RUN") ? runTighten : restBoost;
+      const hitR = baseHit * stateMultiplier;
+
+      const dx = r.x - mouse.x;
+      const dy = r.y - mouse.y;
+      const dist = Math.hypot(dx, dy);
+
+      const bodyR = r.size * ((r.state === "RUN") ? 0.75 : 1.0);
+      if (dist <= hitR + bodyR){
+        hitIdx = i;
+        break;
+      }
+    }
+
+    if (hitIdx >= 0){
+      rabbits[hitIdx].hitFlash = 1.0;
+
+      // jump + escape impulse
+      const rr = rabbits[hitIdx];
+      const ax = rr.x - mouse.x;
+      const ay = rr.y - mouse.y;
+      const d = Math.hypot(ax, ay) || 1;
+      const nx = ax/d, ny = ay/d;
+      rr.vx += nx * 380;
+      rr.vy += ny * 220;
+
+      // spawn star particles
+      for(let p=0;p<10;p++){
+        const a = Math.random()*Math.PI*2;
+        const sp = 120 + Math.random()*220;
+        particles.push({
+          x: rr.x, y: rr.y,
+          vx: Math.cos(a)*sp,
+          vy: Math.sin(a)*sp,
+          life: 0.45 + Math.random()*0.25
+        });
+      }
+
+      // tiny beep sound (WebAudio)
+      try{
+        const ac = new (window.AudioContext||window.webkitAudioContext)();
+        const o = ac.createOscillator();
+        const g = ac.createGain();
+        o.type="triangle";
+        o.frequency.value = 620;
+        g.gain.value = 0.08;
+        o.connect(g); g.connect(ac.destination);
+        o.start();
+        o.stop(ac.currentTime+0.08);
+      }catch(e){}
+
+      rabbits[hitIdx].alive = false;
+      caught++;
+      // respawn after delay
+      setTimeout(() => respawnRabbit(hitIdx), 380);
+    }
+
+    updateUI();
+  }
+
+  function reload(){
+    ammo = ammoMax;
+    playReload();
+    updateUI();
+  }
+
+  function sell(){
+    if (caught < 10) return;
+    caught -= 10;
+    const revenue = currentSellPrice();
+    money += revenue;
+    soldThisRound = true;
+    updateUI();
+    save.money = money; saveNow();
+  }
+
+  function nextRound(){
+    if (!soldThisRound) return;
+    round++;
+    soldThisRound = false;
+    caught = 0;
+    obstacles = generateObstacles();
+    ammoMax = currentAmmoMax();
+    ammo = ammoMax;
+    populateRabbits();
+    updateUI();
+
+    save.round = round;
+    save.money = money;
+    saveNow();
+  }
+
+  // ========== Shop ==========
+  const shopItems = [
+    {
+      key: "aim",
+      name: "조준 보정 (히트 반경 +)",
+      desc: "클릭 판정(히트 반경)을 증가시켜 RUN 상태에서도 맞추기 수월해집니다.",
+      levelText: (lvl)=>`현재 +${(lvl*3.5).toFixed(1)}px`,
+      price: (lvl)=>upgPriceAim(lvl),
+      apply: ()=>{ /* computed live */ }
+    },
+    {
+      key: "ammo",
+      name: "탄약 수 증가",
+      desc: "최대 탄약을 +2씩 증가시킵니다. 재장전 빈도가 줄어듭니다.",
+      levelText: (lvl)=>`최대 탄약 ${base.ammoMax + lvl*2}`,
+      price: (lvl)=>upgPriceAmmo(lvl),
+      apply: ()=>{ ammoMax = currentAmmoMax(); ammo = clamp(ammo, 0, ammoMax); }
+    },
+    {
+      key: "price",
+      name: "판매 가격 상승",
+      desc: "10마리 판매 가격을 +$40씩 증가시킵니다.",
+      levelText: (lvl)=>`판매가 $${base.sellPrice + lvl*40}`,
+      price: (lvl)=>upgPriceSell(lvl),
+      apply: ()=>{ /* computed live */ }
+    },
+    {
+      key: "spawn",
+      name: "토끼 스폰 수 증가",
+      desc: "동시에 등장하는 토끼 수를 +2씩 증가시킵니다. (시야가 복잡해집니다)",
+      levelText: (lvl)=>`스폰 ${base.spawn + lvl*2}`,
+      price: (lvl)=>upgPriceSpawn(lvl),
+      apply: ()=>{ populateRabbits(); }
+    }
+  ];
+
+  function renderShop(){
+    shopMoney.textContent = String(money);
+    shopGrid.innerHTML = "";
+    for(const item of shopItems){
+      const lvl = save.upg[item.key];
+      const cost = item.price(lvl);
+      const canBuy = money >= cost;
+
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `
+        <div class="cardTitle">
+          <b>${item.name}</b>
+          <span class="tag">Lv ${lvl}</span>
+        </div>
+        <div class="muted" style="margin-top:8px">${item.desc}</div>
+        <div class="row">
+          <span class="tag">${item.levelText(lvl)}</span>
+          <span class="tag">다음 가격 <span class="price">$${cost}</span></span>
+          <button ${canBuy ? "" : "disabled"} data-buy="${item.key}">구매</button>
+          <span class="muted ${canBuy ? "ok" : "danger"}">${canBuy ? "구매 가능" : "돈이 부족함"}</span>
+        </div>
+        <div class="muted" style="margin-top:10px">
+          <b>난이도 영향:</b> 업그레이드를 구매할수록 <u>다음 라운드</u>에서 토끼 속도↑, REST 확률↓, REST 시간↓
+        </div>
+      `;
+      shopGrid.appendChild(div);
+    }
+
+    // bind buy buttons
+    shopGrid.querySelectorAll("button[data-buy]").forEach(btn => {
+      btn.addEventListener("click", () => buyUpgrade(btn.getAttribute("data-buy")));
+    });
+  }
+
+  function buyUpgrade(key){
+    const item = shopItems.find(x => x.key === key);
+    if(!item) return;
+    const lvl = save.upg[key];
+    const cost = item.price(lvl);
+    if(money < cost) return;
+
+    money -= cost;
+    save.upg[key] = lvl + 1;
+    save.upgradesBought += 1; // makes next rounds harder
+    save.money = money;
+    saveNow();
+
+    // apply effects immediately where sensible
+    item.apply();
+
+    // refresh derived values
+    ammoMax = currentAmmoMax();
+    elAmmoMax.textContent = String(ammoMax);
+    elSpawn.textContent = String(currentSpawnCount());
+
+    updateUI();
+    renderShop();
+  }
+
+  function openShop(){
+    modalBackdrop.style.display = "flex";
+    renderShop();
+  }
+  function closeShop(){
+    modalBackdrop.style.display = "none";
+    canvas.focus?.();
+  }
+
+  // ========== UI update ==========
+  function updateUI(){
+    elRound.textContent = String(round);
+    elCaught.textContent = String(caught);
+    elMoney.textContent = String(money);
+    elAmmo.textContent = String(ammo);
+    elAmmoMax.textContent = String(ammoMax);
+    elSpawn.textContent = String(currentSpawnCount());
+
+    sellBtn.disabled = caught < 10;
+    nextRoundBtn.disabled = !soldThisRound;
+  }
+
+  // ========== Controls ==========
+  reloadBtn.addEventListener("click", reload);
+  sellBtn.addEventListener("click", sell);
+  nextRoundBtn.addEventListener("click", nextRound);
+  shopBtn.addEventListener("click", openShop);
+  bgmBtn.addEventListener("click", ()=>{ bgmOn ? stopBGM() : startBGM(); });
+
+  closeShopBtn.addEventListener("click", closeShop);
+  modalBackdrop.addEventListener("click", (e) => {
+    if(e.target === modalBackdrop) closeShop();
+  });
+  resetBtn.addEventListener("click", () => {
+    if(!confirm("세이브를 초기화할까요? (돈/라운드/업그레이드 모두 리셋)")) return;
+    localStorage.removeItem(SAVE_KEY);
+    save = defaultSave();
+    money = save.money;
+    round = save.round;
+    caught = 0;
+    soldThisRound = false;
+    ammoMax = currentAmmoMax();
+    ammo = ammoMax;
+    obstacles = generateObstacles();
+    populateRabbits();
+    updateUI();
+    renderShop();
+  });
+
+  canvas.addEventListener("click", () => {
+    if(modalBackdrop.style.display === "flex") return; // ignore clicks in shop mode
+    shoot();
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if(e.key === "r" || e.key === "R") reload();
+    if(e.key === "Shift") focus = true;
+    if(e.key === "b" || e.key === "B") openShop();
+    if(e.key === "Escape") closeShop();
+  });
+  window.addEventListener("keyup", (e) => {
+    if(e.key === "Shift") focus = false;
+  });
+
+  // ========== Main loop ==========
+  let last = performance.now();
+  function step(now){
+    const dtRaw = (now - last) / 1000;
+    last = now;
+
+    const dt = dtRaw * (focus && focusEnergy > 0 ? 0.45 : 1.0);
+
+    // focus energy update
+    if(focus){
+      focusEnergy = clamp(focusEnergy - focusDrain * dtRaw, 0, 1);
+    }else{
+      focusEnergy = clamp(focusEnergy + focusRegen * dtRaw, 0, 1);
+    }
+
+    updateRabbits(dt);
+    updateParticles(dt);
+    draw(dtRaw);
+    requestAnimationFrame(step);
+  }
+
+  function updateRabbits(dt){
+    const w = W(), h = H();
+    const diff = difficulty();
+
+    for(let i=0;i<rabbits.length;i++){
+      // decay hit reaction
+      if(rabbits[i].hitFlash>0) rabbits[i].hitFlash = Math.max(0, rabbits[i].hitFlash - dt*3.2);
+
+      const r = rabbits[i];
+      if(!r.alive) continue;
+
+      // timers
+      r.stateT -= dt;
+      r.zigT -= dt;
+      r.burstT -= dt;
+
+      // state switch (REST shorter, REST chance lower with difficulty)
+      if(r.stateT <= 0){
+        if(r.state === "RUN"){
+          // rest chance decreases
+          const baseRestChance = 0.28; // baseline
+          const chance = clamp(baseRestChance * diff.restProbMult, 0.05, 0.28);
+          if(Math.random() < chance){
+            r.state = "REST";
+            r.stateT = rand(0.32, 0.85) * diff.restDurMult;
+          }else{
+            r.stateT = rand(0.65, 1.9);
+          }
+        }else{
+          r.state = "RUN";
+          r.stateT = rand(0.9, 2.6);
+
+          // reroll heading with difficulty
+          const ang = rand(0, Math.PI*2);
+          const sp = rand(185, 300) * diff.speedMult;
+          r.vx = Math.cos(ang)*sp;
+          r.vy = Math.sin(ang)*sp*0.45;
+          r.burstT = rand(0.35, 1.2);
+          r.burstK = rand(0.65, 1.55);
+        }
+      }
+
+      // RUN steering + bursts
+      if(r.state === "RUN"){
+        if(r.zigT <= 0){
+          r.zigT = rand(0.05, 0.18) / clamp(diff.speedMult, 1, 2.2);
+          const turn = rand(-0.8, 0.8) * (0.9 + (diff.speedMult-1)*0.4);
+          const sp = Math.hypot(r.vx, r.vy) || 1;
+          const ang = Math.atan2(r.vy, r.vx) + turn;
+          r.vx = Math.cos(ang)*sp;
+          r.vy = Math.sin(ang)*sp*0.55;
+        }
+
+        // burst accel/decel (sudden changes)
+        if(r.burstT <= 0){
+          r.burstT = rand(0.35, 1.1);
+          r.burstK = rand(0.6, 1.6);
+          const sp = Math.hypot(r.vx, r.vy) || 1;
+          const target = sp * r.burstK;
+          const k = clamp(0.55 + (diff.speedMult-1)*0.25, 0.55, 0.9);
+          const newSp = sp*(1-k) + target*k;
+          const ang = Math.atan2(r.vy, r.vx);
+          r.vx = Math.cos(ang)*newSp;
+          r.vy = Math.sin(ang)*newSp*0.45;
+        }
+
+        r.x += r.vx * dt;
+        r.y += r.vy * dt;
+      }else{
+        // REST: almost stop, tiny jitter only
+        r.x += Math.sin(performance.now()*0.008 + r.size) * 4 * dt;
+        r.y += Math.cos(performance.now()*0.007 + r.size) * 3 * dt;
+      }
+
+      // world bounds
+      const padX = r.size + 10;
+      const padY = r.size + 70;
+      if(r.x < padX){ r.x = padX; r.vx = Math.abs(r.vx); }
+      if(r.x > w - padX){ r.x = w - padX; r.vx = -Math.abs(r.vx); }
+      if(r.y < padY){ r.y = padY; r.vy = Math.abs(r.vy); }
+      if(r.y > h - (r.size + 10)){ r.y = h - (r.size + 10); r.vy = -Math.abs(r.vy); }
+
+      // obstacle collisions
+      for(const o of obstacles){
+        resolveCircleCollision(r, o);
+      }
+    }
+  }
+
+  
+  function updateParticles(dt){
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.life -= dt;
+      p.x += p.vx*dt;
+      p.y += p.vy*dt;
+      p.vy += 420*dt; // gravity
+      p.vx *= 0.98;
+      if(p.life<=0) particles.splice(i,1);
+    }
+  }
+
+function draw(dtRaw){
+    const w = W(), h = H();
+    ctx.clearRect(0, 0, w, h);
+
+    // subtle sky strip for readability
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, w, 58);
+    ctx.globalAlpha = 1;
+
+    // obstacles
+    for(const o of obstacles){
+      if(o.type === "ROCK"){
+        ctx.globalAlpha = 0.92;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r, 0, Math.PI*2);
+        ctx.fillStyle = "#6f6f6f";
+        ctx.fill();
+        ctx.globalAlpha = 0.18;
+        ctx.beginPath();
+        ctx.arc(o.x - o.r*0.25, o.y - o.r*0.25, o.r*0.65, 0, Math.PI*2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }else{
+        // BUSH: soft circle + outline
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r, 0, Math.PI*2);
+        ctx.fillStyle = "#1f4";
+        ctx.fill();
+        ctx.globalAlpha = 0.35;
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#0a0";
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    
+    // particles (stars)
+    for(const p of particles){
+      const t = Math.max(0,p.life);
+      ctx.globalAlpha = Math.min(1,t*3);
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.2, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // rabbits
+    for(const r of rabbits){
+      if(!r.alive) continue;
+
+      const body = (r.state === "RUN") ? 0.95 : 1.05;
+      const size = r.size * body;
+
+      // shadow
+      ctx.globalAlpha = 0.18;
+      ctx.beginPath();
+      ctx.ellipse(r.x, r.y + size*0.85, size*0.9, size*0.35, 0, 0, Math.PI*2);
+      ctx.fillStyle = "#000";
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // body
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, size, 0, Math.PI*2);
+
+      // surprised flash tint when hit recently
+      const flash = r.hitFlash || 0;
+      ctx.fillStyle = flash > 0 ? "#ffe6e6" : "#f0f0f0";
+      ctx.fill();
+
+      // face direction based on velocity
+      const angFace = Math.atan2(r.vy, r.vx);
+      const fx = Math.cos(angFace), fy = Math.sin(angFace);
+
+      // eyes (bigger when surprised)
+      const eyeScale = flash > 0 ? 1.6 : 1.0;
+      const eyeOff = size * 0.35;
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = "#111";
+      ctx.beginPath();
+      ctx.arc(r.x + fx*eyeOff - fy*size*0.18, r.y + fy*eyeOff + fx*size*0.18, size*0.10*eyeScale, 0, Math.PI*2);
+      ctx.arc(r.x + fx*eyeOff + fy*size*0.18, r.y + fy*eyeOff - fx*size*0.18, size*0.10*eyeScale, 0, Math.PI*2);
+      ctx.fill();
+
+      // nose
+      ctx.fillStyle = "#ffb3c7";
+      ctx.beginPath();
+      ctx.arc(r.x + fx*size*0.55, r.y + fy*size*0.55, size*0.07*(flash>0?1.3:1.0), 0, Math.PI*2);
+      ctx.fill();
+
+      // mouth (open when surprised)
+      ctx.strokeStyle = "#222";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      if(flash>0){
+        ctx.arc(r.x + fx*size*0.58, r.y + fy*size*0.70, size*0.12, 0, Math.PI*2);
+      }else{
+        ctx.moveTo(r.x + fx*size*0.50, r.y + fy*size*0.72);
+        ctx.lineTo(r.x + fx*size*0.68, r.y + fy*size*0.78);
+      }
+      ctx.stroke();
+
+      // whiskers
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = "#333";
+      ctx.lineWidth = 1.2;
+      for(let k=-1;k<=1;k++){
+        ctx.beginPath();
+        ctx.moveTo(r.x + fx*size*0.45, r.y + fy*size*0.60);
+        ctx.lineTo(r.x + fx*size*0.85 - fy*k*size*0.25, r.y + fy*size*0.85 + fx*k*size*0.25);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      // legs (simple running pose)
+      ctx.globalAlpha = 0.85;
+      ctx.strokeStyle = "#ddd";
+      ctx.lineWidth = 3;
+      const legSwing = (r.state==="RUN") ? Math.sin(performance.now()*0.02 + r.x)*0.35 : 0;
+      for(let s=-1;s<=1;s+=2){
+        ctx.beginPath();
+        ctx.moveTo(r.x - fx*size*0.15 + fy*s*size*0.35, r.y + fy*size*0.15 + fx*s*size*0.35);
+        ctx.lineTo(r.x - fx*size*0.45 + fy*s*size*0.25, r.y + fy*size*0.55 + fx*s*size*0.25 + legSwing*size);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      // ears
+      const flap = Math.sin(performance.now()*0.02 + r.x)*0.25;
+      const earTilt = (r.state === "RUN") ? (0.7+flap) : (0.25+flap*0.6);
+      ctx.save();
+      ctx.translate(r.x, r.y);
+      ctx.rotate(-earTilt);
+      ctx.fillStyle = "#f6f6f6";
+      roundRect(ctx, -size*0.35, -size*1.6, size*0.35, size*1.0, 6);
+      roundRect(ctx,  size*0.05, -size*1.55, size*0.35, size*0.95, 6);
+      ctx.fill();
+      ctx.restore();
+
+      // state tag
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = (r.state === "RUN") ? "#ffe08a" : "#b7ffb7";
+      ctx.fillText(r.state, r.x, r.y - size - 10);
+      ctx.globalAlpha = 1;
+    }
+
+    // crosshair
+    drawCrosshair();
+
+    // focus bar
+    drawFocusBar();
+
+    // small difficulty hint
+    const d = difficulty();
+    ctx.globalAlpha = 0.9;
+    ctx.font = "12px system-ui, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "#fff";
+    ctx.fillText(
+      `난이도: 속도×${d.speedMult.toFixed(2)} · REST확률×${d.restProbMult.toFixed(2)} · REST시간×${d.restDurMult.toFixed(2)} · 업그레이드구매 ${save.upgradesBought}`,
+      12, 14
+    );
+    ctx.globalAlpha = 1;
+
+    if(ammo === 0){
+      ctx.globalAlpha = 0.92;
+      ctx.font = "18px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#fff";
+      ctx.fillText("탄약 없음 — R로 재장전", w/2, 92);
+      ctx.globalAlpha = 1;
+    }
+
+    if(!soldThisRound){
+      ctx.globalAlpha = 0.92;
+      ctx.font = "13px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#fff";
+      ctx.fillText("라운드를 넘기려면 이번 라운드에서 최소 1회 판매(10마리)를 해야 합니다.", w/2, 120);
+      ctx.globalAlpha = 1;
+    }else{
+      ctx.globalAlpha = 0.92;
+      ctx.font = "13px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#fff";
+      ctx.fillText("판매 완료! 상점에서 업그레이드 후 ‘다음 라운드 ▶’ 버튼으로 진행하세요.", w/2, 120);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawCrosshair(){
+    const x = mouse.x, y = mouse.y;
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.9;
+
+    const ring = 12 + (focus && focusEnergy > 0 ? 0 : 4);
+    ctx.beginPath();
+    ctx.arc(x, y, ring, 0, Math.PI*2);
+    ctx.strokeStyle = "#fff";
+    ctx.stroke();
+
+    const L = 18;
+    ctx.beginPath();
+    ctx.moveTo(x - L, y); ctx.lineTo(x - 6, y);
+    ctx.moveTo(x + 6, y); ctx.lineTo(x + L, y);
+    ctx.moveTo(x, y - L); ctx.lineTo(x, y - 6);
+    ctx.moveTo(x, y + 6); ctx.lineTo(x, y + L);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x, y, 2.2, 0, Math.PI*2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawFocusBar(){
+    const x = 12, y = 62, bw = 180, bh = 10;
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillRect(x, y, bw, bh);
+
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(x, y, bw * focusEnergy, bh);
+
+    ctx.globalAlpha = 0.9;
+    ctx.font = "12px system-ui, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "bottom";
+    ctx.fillStyle = "#fff";
+    ctx.fillText("집중(Shift)", x, y - 4);
+    ctx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r){
+    r = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+    return ctx;
+  }
+
+  // ========== Boot ==========
+  function boot(){
+    ammoMax = currentAmmoMax();
+    ammo = ammoMax;
+    obstacles = generateObstacles();
+    populateRabbits();
+    updateUI();
+    requestAnimationFrame(step);
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>99일 생존 v10</title>
+<style>
+:root{color-scheme:dark;}
+body{margin:0;background:#0b0f14;color:#e8eef6;font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;overflow:hidden;}
+.wrap{max-width:1100px;margin:0 auto;padding:14px 16px;}
+h1{margin:8px 0 10px;font-size:20px;font-weight:900;}
+#hud{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+.pill{background:#111a24;border:1px solid #1d2a3a;border-radius:999px;padding:8px 12px;font-size:13px;}
+canvas{background:linear-gradient(#3a7bd5,#00d2ff);border:1px solid #1d2a3a;border-radius:14px;outline:none;}
+button{background:#1b2a3a;border:1px solid #2a3e55;color:#e8eef6;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:800;}
+button:disabled{opacity:.55;cursor:default;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>99일 생존 v10 — Start 정상 동작</h1>
+<div id="hud">
+  <div class="pill" id="dayPill">Day 1 / 99</div>
+  <div class="pill" id="hpPill">HP: 100</div>
+  <div class="pill" style="padding:6px 10px;">
+    <div style="width:160px;height:10px;background:#223246;border-radius:999px;overflow:hidden;">
+      <div id="hpBar" style="height:10px;width:100%;background:#ffe46b;"></div>
+    </div>
+  </div>
+  <div class="pill" id="zPill">Enemies: 0</div>
+  <button id="startBtn">Start</button>
+  <button id="restartBtn" disabled>Restart</button>
+  <div class="pill" id="msg">이동: 방향키/WASD · 공격: Space</div>
+<div style="width:100%;text-align:center;margin-top:6px;font-size:14px;opacity:0.85;">- 홍유화가 만든 첫번째 게임-</div>
+</div>
+<canvas id="game" width="900" height="520" tabindex="0"></canvas>
+</div>
+
+<script>
+(()=> {
+const MAX_DAYS=99;
+const BOSS_INTERVAL=10;
+const BOSS_HP=10;
+
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const dayPill=document.getElementById("dayPill");
+const hpPill=document.getElementById("hpPill");
+const hpBar=document.getElementById("hpBar");
+const zPill=document.getElementById("zPill");
+const msg=document.getElementById("msg");
+const startBtn=document.getElementById("startBtn");
+const restartBtn=document.getElementById("restartBtn");
+
+canvas.addEventListener("pointerdown",()=>canvas.focus());
+
+const keys=new Set();
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function dist(ax,ay,bx,by){return Math.hypot(ax-bx,ay-by);}
+function rand(a,b){return a+Math.random()*(b-a);}
+
+let running=false,gameOver=false,cleared=false;
+let day=1;
+
+let overlayText="";
+let overlayTimer=0;
+
+let audioReady=false;
+let audioCtx=null;
+
+function initAudio(){
+  if(audioReady) return;
+  audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  audioReady=true;
+}
+
+function beep(freq,dur){
+  if(!audioReady) return;
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.frequency.value=freq;
+  o.type="square";
+  g.gain.value=0.06;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime+dur);
+}
+
+function sfxShoot(){beep(700,0.07);}
+function sfxBoom(){beep(180,0.12);}
+function sfxHit(){beep(320,0.08);}
+
+function showOverlay(text,sec){
+  overlayText=text;
+  overlayTimer=sec;
+}
+
+const player={x:450,y:340,r:16,speed:250,hp:100,invuln:0,facingX:1,facingY:0};
+
+let enemies=[];
+let missiles=[];
+let particles=[];
+let missileCd=0;
+let contactDps=18;
+
+let clouds = [];
+for(let i=0;i<6;i++){
+  clouds.push({x:rand(0,canvas.width), y:rand(40,180), spd:rand(10,25), s:rand(0.8,1.4)});
+}
+
+let deathAnim=false;
+let angelY=0;
+
+
+function setMsg(t){msg.textContent=t;}
+function syncHud(){
+  dayPill.textContent=`Day ${day} / ${MAX_DAYS}`;
+  hpPill.textContent=`HP: ${Math.max(0,Math.round(player.hp))}`;
+  hpBar.style.width=(Math.max(0,player.hp)/100*100).toFixed(0)+"%";
+  zPill.textContent=`Enemies: ${enemies.length}`;
+}
+
+function reset(){
+  running=false;gameOver=false;cleared=false;
+  day=1;
+  player.x=450;player.y=340;player.hp=100;player.invuln=0;deathAnim=false;angelY=0;overlayTimer=0;overlayText="";
+  enemies=[];missiles=[];particles=[];
+  startBtn.disabled=false;
+  restartBtn.disabled=true;
+  setMsg("이동: 방향키/WASD · 공격: Space");
+  // game over immediate
+  if(player.hp<=0 && !gameOver){
+    gameOver=true;
+    running=false;
+    deathAnim=true;
+    angelY=player.y;
+    setMsg("Game Over...");
+    restartBtn.disabled=false;
+  }
+
+  syncHud();
+}
+
+function spawnStage(d){
+  enemies=[];
+  showOverlay(`Day ${d} 시작!`,1.2);
+
+  if(d%BOSS_INTERVAL===0){
+    enemies.push({type:"boss",x:canvas.width/2,y:-60,r:46,speed:85,hp:BOSS_HP});
+    setMsg(`보스 등장! 킹콩 (HP ${BOSS_HP})`);
+    return;
+  }
+
+  const count=clamp(2+Math.floor(d/2),2,25);
+  for(let i=0;i<count;i++){
+    const edge=Math.floor(Math.random()*4);
+    let x,y;
+    if(edge===0){x=rand(20,canvas.width-20);y=-40;}
+    if(edge===1){x=rand(20,canvas.width-20);y=canvas.height+40;}
+    if(edge===2){x=-40;y=rand(20,canvas.height-20);}
+    if(edge===3){x=canvas.width+40;y=rand(20,canvas.height-20);}
+    enemies.push({type:"zombie",x,y,r:16,speed:90+d*1.2});
+  }
+  setMsg(`Day ${d}: 독수리 좀비 ${count}마리!`);
+}
+
+function fireMissile(){
+  if(missileCd>0)return;
+  missileCd=0.25;
+  let fx=player.facingX,fy=player.facingY;
+  const fl=Math.hypot(fx,fy);
+  if(fl<0.01){fx=1;fy=0;} else {fx/=fl;fy/=fl;}
+  sfxShoot();
+  missiles.push({x:player.x+fx*(player.r+12),y:player.y+fy*(player.r+12),
+    vx:fx*560,vy:fy*560,r:5,life:1.4});
+}
+
+function explode(x,y){
+  sfxBoom();
+  for(let i=0;i<34;i++){
+    const ang=rand(0,Math.PI*2),spd=rand(140,340);
+    particles.push({x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:rand(0.35,0.75)});
+  }
+}
+
+function isArrowOrSpace(k){return ["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k);}
+window.addEventListener("keydown",(e)=>{
+  const k=e.key.toLowerCase();
+  if(isArrowOrSpace(k))e.preventDefault();
+  if(k===" " && running && !gameOver && !cleared){
+      // melee if touching
+      let idx=-1;
+      for(let i=0;i<enemies.length;i++){
+        const e=enemies[i];
+        if(dist(player.x,player.y,e.x,e.y) < player.r+e.r){
+          idx=i; break;
+        }
+      }
+      if(idx>=0){
+        player.hp -= 1;
+        sfxHit();
+        const e=enemies[idx];
+        explode(e.x,e.y);
+        if(e.type==="boss"){ e.hp -= 1; if(e.hp<=0) enemies.splice(idx,1); }
+        else enemies.splice(idx,1);
+      } else {
+        fireMissile();
+      }
+      return;
+    }
+  keys.add(k);
+},{passive:false});
+window.addEventListener("keyup",(e)=>{
+  const k=e.key.toLowerCase();
+  if(isArrowOrSpace(k))e.preventDefault();
+  keys.delete(k);
+},{passive:false});
+
+function drawHuman(px,py,r,inv){
+  if(inv>0)ctx.globalAlpha=0.55+0.45*Math.sin(performance.now()/60);
+  ctx.fillStyle="#ffe46b";
+  ctx.beginPath();ctx.arc(px,py-r*0.65,r*0.55,0,Math.PI*2);ctx.fill();
+  const eyeSide=(player.facingX>=0)?1:-1;
+  ctx.fillStyle="rgba(11,15,20,0.9)";
+  ctx.beginPath();
+  ctx.arc(px+eyeSide*r*0.18,py-r*0.7,r*0.08,0,Math.PI*2);
+  ctx.arc(px+eyeSide*r*0.32,py-r*0.7,r*0.08,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle="rgba(255,228,107,0.95)";
+  ctx.lineWidth=3;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(px,py-r*0.1);ctx.lineTo(px,py+r*0.85);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(px-r*0.75,py+r*0.2);ctx.lineTo(px+r*0.75,py+r*0.2);ctx.stroke();
+  ctx.strokeStyle="rgba(255,228,107,0.55)";
+  ctx.lineWidth=2.5;
+  ctx.beginPath();
+  ctx.moveTo(px-r*0.9,py+r*0.05);
+  ctx.quadraticCurveTo(px-r*1.6,py-r*0.6,px-r*0.7,py-r*0.2);
+  ctx.moveTo(px+r*0.9,py+r*0.05);
+  ctx.quadraticCurveTo(px+r*1.6,py-r*0.6,px+r*0.7,py-r*0.2);
+  ctx.stroke();
+  ctx.strokeStyle="rgba(255,228,107,0.95)";
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(px,py+r*0.85);
+  ctx.lineTo(px-r*0.6,py+r*1.55);
+  ctx.moveTo(px,py+r*0.85);
+  ctx.lineTo(px+r*0.6,py+r*1.55);
+  ctx.stroke();
+  ctx.globalAlpha=1;
+}
+
+function drawEagle(x,y,r){
+  ctx.fillStyle="rgba(124,242,155,0.95)";
+  ctx.beginPath();ctx.ellipse(x,y,r*0.9,r*0.55,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="rgba(124,242,155,0.85)";
+  ctx.beginPath();ctx.moveTo(x-r*0.2,y);
+  ctx.lineTo(x-r*1.6,y-r*0.6);ctx.lineTo(x-r*1.3,y+r*0.4);
+  ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(x+r*0.2,y);
+  ctx.lineTo(x+r*1.6,y-r*0.6);ctx.lineTo(x+r*1.3,y+r*0.4);
+  ctx.closePath();ctx.fill();
+  ctx.fillStyle="rgba(11,15,20,0.9)";
+  ctx.beginPath();ctx.arc(x+r*0.25,y-r*0.15,r*0.10,0,Math.PI*2);ctx.fill();
+}
+
+function drawKingKong(b){
+  ctx.fillStyle="rgba(255,180,120,0.95)";
+  ctx.beginPath();ctx.ellipse(b.x,b.y,b.r*0.9,b.r*1.05,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(b.x,b.y-b.r*1.05,b.r*0.55,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="rgba(255,180,120,0.85)";
+  ctx.beginPath();
+  ctx.ellipse(b.x-b.r*1.0,b.y+b.r*0.2,b.r*0.55,b.r*0.35,0.3,0,Math.PI*2);
+  ctx.ellipse(b.x+b.r*1.0,b.y+b.r*0.2,b.r*0.55,b.r*0.35,-0.3,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle="#0b0f14";
+  ctx.font="900 16px system-ui";ctx.textAlign="center";
+  ctx.fillText("HP "+b.hp,b.x,b.y+6);
+  ctx.strokeStyle="rgba(11,15,20,0.85)";
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(b.x-b.r*0.35,b.y-b.r*1.15);
+  ctx.lineTo(b.x-b.r*0.05,b.y-b.r*1.25);
+  ctx.moveTo(b.x+b.r*0.35,b.y-b.r*1.15);
+  ctx.lineTo(b.x+b.r*0.05,b.y-b.r*1.25);
+  ctx.stroke();
+  ctx.textAlign="start";
+}
+
+let last=performance.now();
+function loop(now){
+  const dt=Math.min(0.033,(now-last)/1000);last=now;
+  overlayTimer=Math.max(0,overlayTimer-dt);
+  if(running && !gameOver && !cleared) update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+function update(dt){
+  player.invuln=Math.max(0,player.invuln-dt);
+  missileCd=Math.max(0,missileCd-dt);
+
+  let mx=0,my=0;
+  if(keys.has("w")||keys.has("arrowup"))my-=1;
+  if(keys.has("s")||keys.has("arrowdown"))my+=1;
+  if(keys.has("a")||keys.has("arrowleft"))mx-=1;
+  if(keys.has("d")||keys.has("arrowright"))mx+=1;
+  if(mx||my){
+    const len=Math.hypot(mx,my);mx/=len;my/=len;
+    player.facingX=mx;player.facingY=my;
+  }
+  player.x=clamp(player.x+mx*player.speed*dt,player.r,canvas.width-player.r);
+  player.y=clamp(player.y+my*player.speed*dt,player.r,canvas.height-player.r);
+
+  for(const e of enemies){
+    const dx=player.x-e.x,dy=player.y-e.y,l=Math.hypot(dx,dy)||1;
+    e.x+=(dx/l)*e.speed*dt; e.y+=(dy/l)*e.speed*dt;
+
+    // contact damage over time
+    if(dist(player.x,player.y,e.x,e.y) < player.r+e.r){
+      player.hp -= contactDps*dt;
+    }
+  }
+
+  for(const m of missiles){m.x+=m.vx*dt;m.y+=m.vy*dt;m.life-=dt;}
+  for(const m of missiles){
+    if(m.life<=0)continue;
+    for(let i=0;i<enemies.length;i++){
+      const e=enemies[i];
+      if(dist(m.x,m.y,e.x,e.y)<m.r+e.r){
+        explode(e.x,e.y); m.life=0;
+        if(e.type==="boss"){e.hp--; if(e.hp<=0) enemies.splice(i,1);}
+        else enemies.splice(i,1);
+        break;
+      }
+    }
+  }
+  missiles=missiles.filter(m=>m.life>0);
+
+  for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=0.92;p.vy*=0.92;}
+  particles=particles.filter(p=>p.life>0);
+
+  if(enemies.length===0){
+    running=false;
+    if(day>=MAX_DAYS){cleared=true;setMsg("클리어!");}
+    else{
+      player.hp=100;
+      showOverlay("살아남았다!",3.0);
+      day++;
+      setTimeout(()=>{ if(!gameOver&&!cleared){ running=true; spawnStage(day);} },3000);
+    }
+  }
+
+  // game over immediate
+  if(player.hp<=0 && !gameOver){
+    gameOver=true;
+    running=false;
+    deathAnim=true;
+    angelY=player.y;
+    setMsg("Game Over...");
+    restartBtn.disabled=false;
+  }
+
+  syncHud();
+}
+
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // clouds animation
+  for(const c of clouds){
+    c.x += c.spd*0.016;
+    if(c.x > canvas.width+120) c.x = -120;
+    ctx.fillStyle="rgba(255,255,255,0.35)";
+    ctx.beginPath();
+    ctx.ellipse(c.x, c.y, 60*c.s, 22*c.s, 0, 0, Math.PI*2);
+    ctx.ellipse(c.x+40*c.s, c.y+5*c.s, 48*c.s, 18*c.s, 0, 0, Math.PI*2);
+    ctx.ellipse(c.x-35*c.s, c.y+8*c.s, 42*c.s, 16*c.s, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+
+  for(const m of missiles){
+    ctx.fillStyle="rgba(232,238,246,0.95)";
+    ctx.beginPath();ctx.arc(m.x,m.y,m.r,0,Math.PI*2);ctx.fill();
+  }
+
+  for(const e of enemies){
+    if(e.type==="boss") drawKingKong(e);
+    else drawEagle(e.x,e.y,e.r);
+  }
+
+  
+if(!deathAnim){
+  drawHuman(player.x,player.y,player.r,player.invuln);
+} else {
+  angelY -= 0.4;
+  ctx.strokeStyle="rgba(255,255,255,0.85)";
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.ellipse(player.x, angelY-player.r*1.6, player.r*0.7, player.r*0.25, 0, 0, Math.PI*2);
+  ctx.stroke();
+
+  ctx.strokeStyle="rgba(255,255,255,0.75)";
+  ctx.beginPath();
+  ctx.moveTo(player.x-player.r*0.9, angelY+player.r*0.05);
+  ctx.quadraticCurveTo(player.x-player.r*1.8, angelY-player.r*0.8, player.x-player.r*0.6, angelY-player.r*0.2);
+  ctx.moveTo(player.x+player.r*0.9, angelY+player.r*0.05);
+  ctx.quadraticCurveTo(player.x+player.r*1.8, angelY-player.r*0.8, player.x+player.r*0.6, angelY-player.r*0.2);
+  ctx.stroke();
+
+  ctx.fillStyle="rgba(255,255,255,0.85)";
+  ctx.beginPath();
+  ctx.arc(player.x, angelY-player.r*0.65, player.r*0.55, 0, Math.PI*2);
+  ctx.fill();
+}
+
+
+  for(const p of particles){
+    ctx.globalAlpha=Math.max(0,p.life/0.75);
+    ctx.fillStyle="rgba(255,200,200,0.95)";
+    ctx.fillRect(p.x,p.y,2,2);
+  }
+  ctx.globalAlpha=1;
+
+  
+  // title logo on waiting screen
+  if(!running && !gameOver && day===1){
+    ctx.fillStyle="rgba(0,0,0,0.25)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle="#ffffff";
+    ctx.font="900 54px system-ui";
+    ctx.textAlign="center";
+    ctx.fillText("나 잡아 봐라! 메~롱~", canvas.width/2, canvas.height/2-10);
+    ctx.font="600 18px system-ui";
+    ctx.fillText("- 홍유화가 만든 첫번째 게임-", canvas.width/2, canvas.height/2+32);
+    ctx.textAlign="start";
+  }
+
+if(gameOver){
+    ctx.fillStyle="rgba(0,0,0,0.65)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle="#ffb2b2";
+    ctx.font="900 64px system-ui";
+    ctx.textAlign="center";
+    ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2-20);
+    ctx.fillStyle="#e8eef6";
+    ctx.font="700 18px system-ui";
+    ctx.fillText("Restart를 눌러 다시 시작하세요.", canvas.width/2, canvas.height/2+25);
+    ctx.textAlign="start";
+  }
+  if(!gameOver && overlayTimer>0){
+    ctx.fillStyle="rgba(0,0,0,0.35)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle="#e8eef6";
+    ctx.font="900 46px system-ui";
+    ctx.textAlign="center";
+    ctx.fillText(overlayText,canvas.width/2,canvas.height/2);
+    ctx.textAlign="start";
+  }
+}
+
+startBtn.addEventListener("click",()=>{
+  initAudio();
+  startBtn.disabled=true;
+  restartBtn.disabled=false;
+  showOverlay(`${MAX_DAYS}일 남았다!`,2.0);
+  setTimeout(()=>{
+    running=true;
+    spawnStage(day);
+    canvas.focus();
+  },2000);
+});
+
+restartBtn.addEventListener("click",reset);
+
+reset();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

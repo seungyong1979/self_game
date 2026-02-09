@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>햄버거를 피해라!</title>
+<style>
+html,body{height:100%;margin:0;font-family:system-ui;background:#0b1220;color:#e8eefc;}
+.wrap{height:100%;display:flex;flex-direction:column;}
+header{padding:10px;display:flex;gap:10px;flex-wrap:wrap}
+.pill{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.12);
+border-radius:999px;padding:6px 10px;font-size:14px;color:#a9b5d6;}
+.stage{flex:1;position:relative;margin:10px;border-radius:18px;overflow:hidden;
+border:1px solid rgba(255,255,255,.12);}
+canvas{width:100%;height:100%;display:block;}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;
+background:rgba(0,0,0,.55);z-index:5;}
+.card{background:rgba(0,0,0,.35);padding:18px;border-radius:16px;text-align:center;}
+button{padding:12px 16px;border:none;border-radius:12px;font-weight:800;cursor:pointer;
+background:linear-gradient(#6ee7ff,#3fb8ff);}
+.countdown{position:absolute;inset:0;display:none;place-items:center;
+font-size:clamp(60px,12vw,140px);font-weight:900;z-index:4;pointer-events:none;}
+.countdown.show{display:grid;}
+.controls{display:none;gap:12px;justify-content:center;padding:10px;}
+.controlBtn{width:74px;height:64px;border-radius:16px;
+border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.28);
+color:#e8eefc;font-size:22px;display:grid;place-items:center;}
+@media(max-width:768px){.controls{display:flex;}}
+footer{text-align:center;padding:10px;font-size:12px;color:rgba(232,238,252,.75);}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="pill" id="hudGems">보석 횟수: 0</div>
+  <div class="pill" id="hudLives">남은 기회: 5</div>
+  <div class="pill" id="hudStage">스테이지: 1</div>
+</header>
+
+<div class="stage" id="stage">
+  <canvas id="game"></canvas>
+  <div class="countdown" id="countdown"></div>
+  <div class="countdown" id="stagePopup"></div>
+
+  <div class="overlay" id="overlay">
+    <div class="card">
+      <h1>햄버거를 피해라!</h1>
+      <p id="overlayText">시작 버튼을 누르면 3초 후 게임 시작</p>
+      <button id="btnStart">시작</button>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="controlBtn" id="btnLeft">◀</div>
+  <div class="controlBtn" id="btnRight">▶</div>
+</div>
+
+<footer>리하가 첫 번째로 만든 게임</footer>
+</div>
+
+<script>
+(()=> {
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const overlay=document.getElementById("overlay");
+const overlayText=document.getElementById("overlayText");
+const btnStart=document.getElementById("btnStart");
+const countdown=document.getElementById("countdown");
+const stagePopup=document.getElementById("stagePopup");
+
+const hudGems=document.getElementById("hudGems");
+const hudLives=document.getElementById("hudLives");
+const hudStage=document.getElementById("hudStage");
+
+const btnLeft=document.getElementById("btnLeft");
+const btnRight=document.getElementById("btnRight");
+
+let actx=null;
+function initAudio(){
+  if(!actx){
+    actx=new (window.AudioContext||window.webkitAudioContext)();
+  }
+}
+function beep(freq,dur){
+  initAudio();
+  const o=actx.createOscillator();
+  const g=actx.createGain();
+  o.type="sine"; o.frequency.value=freq;
+  g.gain.value=0.06;
+  o.connect(g); g.connect(actx.destination);
+  o.start();
+  o.stop(actx.currentTime+dur);
+}
+const sfx={
+  hit:()=>beep(140,0.15),
+  gem:()=>beep(660,0.12),
+  pill:()=>beep(420,0.12),
+  stage:()=>beep(880,0.18)
+};
+
+const world={w:800,h:500};
+const player={x:0,y:0,speed:420,belly:0};
+const input={left:false,right:false};
+let mood="normal", moodTimer=0;
+
+const state={running:false,stage:1,stageTimer:0,
+gems:0,hits:0,maxHits:5,spawnTimer:0,spawnEvery:0.7,items:[]};
+
+function resize(){
+ const r=document.getElementById("stage").getBoundingClientRect();
+ canvas.width=r.width; canvas.height=r.height;
+ world.w=r.width; world.h=r.height;
+ player.x=world.w/2; player.y=world.h-60;
+}
+window.addEventListener("resize",resize); resize();
+
+function updateHUD(){
+ hudGems.textContent="보석 횟수: "+state.gems;
+ hudLives.textContent="남은 기회: "+(state.maxHits-state.hits);
+ hudStage.textContent="스테이지: "+state.stage;
+}
+
+function resetGame(){
+ state.running=false;
+ state.stage=1; state.stageTimer=0;
+ state.gems=0; state.hits=0; state.maxHits=5;
+ state.items=[];
+ player.belly=0;
+ updateHUD();
+}
+
+function showStagePopup(){
+ stagePopup.classList.add("show");
+ stagePopup.textContent="STAGE "+state.stage;
+ setTimeout(()=>stagePopup.classList.remove("show"),1200);
+}
+
+function spawnItem(){
+ let r=Math.random(), type="burger", gemKind=0;
+ if(r<0.25){type="gem";gemKind=Math.floor(Math.random()*5);}
+ else if(r<0.30){type="pill";}
+ state.items.push({
+  type,gemKind,x:Math.random()*(world.w-40)+20,y:-40,
+  vy:(190+state.stage*45)*(0.9+Math.random()*0.35),
+  r:(type==="burger"?20:16),
+  a:Math.random()*Math.PI*2, spin:(-2+Math.random()*4)
+ });
+}
+
+function startCountdown(){
+ let c=3;
+ countdown.classList.add("show");
+ countdown.textContent="STAGE "+state.stage;
+ const timer=setInterval(()=>{
+   if(c>0){countdown.textContent=c; c--;}
+   else{
+     clearInterval(timer);
+     countdown.classList.remove("show");
+     state.running=true;
+   }
+ },1000);
+}
+
+function gameOver(){
+ state.running=false;
+ overlay.style.display="grid";
+ overlayText.innerHTML="게임오버!<br>먹은 보석: <b>"+state.gems+"</b>개";
+ btnStart.textContent="다시 시작";
+}
+
+function rrect(x,y,w,h,r){
+ ctx.beginPath();
+ const rr=Math.min(r,w/2,h/2);
+ ctx.moveTo(x+rr,y);
+ ctx.arcTo(x+w,y,x+w,y+h,rr);
+ ctx.arcTo(x+w,y+h,x,y+h,rr);
+ ctx.arcTo(x,y+h,x,y,rr);
+ ctx.arcTo(x,y,x+w,y,rr);
+ ctx.closePath();
+}
+
+function drawPlayer(){
+ const moving=(input.left||input.right);
+ const t=performance.now()/1000;
+ const bob=moving?Math.sin(t*10)*2:Math.sin(t*3)*0.6;
+ const ear=Math.sin(t*6)*0.25;
+ const x=player.x, y=player.y+bob;
+
+ // body
+ ctx.fillStyle="rgba(255,170,220,0.95)";
+ rrect(x-18,y-22,36,44,14); ctx.fill();
+
+ // belly
+ ctx.fillStyle="rgba(255,215,160,0.95)";
+ ctx.beginPath();
+ ctx.ellipse(x,y+8,14+player.belly*5,12+player.belly*4,0,0,Math.PI*2);
+ ctx.fill();
+
+ // ears
+ ctx.save();
+ ctx.translate(x,y-40);
+ ctx.rotate(ear);
+ ctx.fillStyle="rgba(255,170,220,0.95)";
+ rrect(-14,-22,12,30,8); ctx.fill();
+ ctx.restore();
+
+ ctx.save();
+ ctx.translate(x,y-40);
+ ctx.rotate(-ear);
+ ctx.fillStyle="rgba(255,170,220,0.95)";
+ rrect(2,-22,12,30,8); ctx.fill();
+ ctx.restore();
+
+ // eyes
+ ctx.fillStyle="black";
+ if(mood==="happy"){
+   ctx.beginPath();
+   ctx.arc(x-6,y-6,2.6,0,Math.PI*2);
+   ctx.arc(x+6,y-6,2.6,0,Math.PI*2);
+   ctx.fill();
+   ctx.fillStyle="white";
+   ctx.beginPath();
+   ctx.arc(x-5,y-7,1,0,Math.PI*2);
+   ctx.arc(x+7,y-7,1,0,Math.PI*2);
+   ctx.fill();
+ } else if(mood==="sad"){
+   ctx.beginPath();
+   ctx.arc(x-6,y-4,2.2,0,Math.PI*2);
+   ctx.arc(x+6,y-4,2.2,0,Math.PI*2);
+   ctx.fill();
+   ctx.strokeStyle="rgba(0,0,0,0.6)";
+   ctx.beginPath();
+   ctx.arc(x,y+8,6,Math.PI,Math.PI*2);
+   ctx.stroke();
+ } else {
+   ctx.beginPath();
+   ctx.arc(x-6,y-6,2.2,0,Math.PI*2);
+   ctx.arc(x+6,y-6,2.2,0,Math.PI*2);
+   ctx.fill();
+   ctx.beginPath();
+   ctx.arc(x,y+4,7,0,Math.PI);
+   ctx.stroke();
+ }
+}
+
+function drawItem(it){
+ if(it.type==="burger"){
+   // burger layers
+   ctx.save(); ctx.translate(it.x,it.y); ctx.rotate(it.a);
+   ctx.fillStyle="#f2b86b";
+   ctx.beginPath(); ctx.ellipse(0,-10,26,16,0,Math.PI,0); ctx.fill();
+   ctx.fillStyle="#ffd36b";
+   ctx.fillRect(-22,-2,44,6);
+   ctx.fillStyle="#7a3c1d";
+   ctx.fillRect(-24,6,48,10);
+   ctx.fillStyle="#e9a95e";
+   ctx.beginPath(); ctx.ellipse(0,22,26,10,0,0,Math.PI); ctx.fill();
+   ctx.restore();
+ }
+ else if(it.type==="gem"){
+   const colors=["cyan","magenta","yellow","lime","violet"];
+   ctx.save(); ctx.translate(it.x,it.y); ctx.rotate(it.a);
+   ctx.fillStyle=colors[it.gemKind];
+   ctx.beginPath();
+   ctx.moveTo(0,-20); ctx.lineTo(18,0); ctx.lineTo(0,20); ctx.lineTo(-18,0);
+   ctx.closePath(); ctx.fill();
+   ctx.strokeStyle="white"; ctx.stroke();
+   ctx.restore();
+ }
+ else{
+   // pill
+   ctx.save(); ctx.translate(it.x,it.y); ctx.rotate(it.a);
+   rrect(-20,-10,40,20,10);
+   ctx.fillStyle="white"; ctx.fill();
+   ctx.strokeStyle="rgba(255,110,120,0.9)";
+   ctx.beginPath(); ctx.moveTo(0,-10); ctx.lineTo(0,10); ctx.stroke();
+   ctx.restore();
+ }
+}
+
+function update(dt){
+ if(moodTimer>0){moodTimer-=dt; if(moodTimer<=0) mood="normal";}
+
+ state.stageTimer+=dt;
+ if(state.stageTimer>20){
+   state.stage++; state.stageTimer=0;
+   updateHUD(); showStagePopup(); sfx.stage();
+ }
+
+ state.spawnEvery=Math.max(0.25,0.7-state.stage*0.05);
+
+ const dir=(input.left?-1:0)+(input.right?1:0);
+ player.x=Math.max(20,Math.min(world.w-20,player.x+dir*player.speed*dt));
+
+ state.spawnTimer-=dt;
+ if(state.spawnTimer<=0){spawnItem(); state.spawnTimer=state.spawnEvery;}
+
+ for(let i=state.items.length-1;i>=0;i--){
+   const it=state.items[i];
+   it.y+=it.vy*dt; it.a+=it.spin*dt;
+
+   const dx=it.x-player.x, dy=it.y-player.y;
+   const bodyR=20+player.belly*4;
+   if(Math.sqrt(dx*dx+dy*dy)<it.r+bodyR){
+     if(it.type==="burger"){
+       state.hits++; player.belly++;
+       mood="sad"; moodTimer=0.8; sfx.hit();
+     } else if(it.type==="gem"){
+       state.gems++;
+       mood="happy"; moodTimer=0.6; sfx.gem();
+     } else {
+       state.maxHits++; player.belly=Math.max(0,player.belly-2);
+       sfx.pill();
+     }
+     state.items.splice(i,1);
+     updateHUD();
+     if(state.hits>=state.maxHits) gameOver();
+   }
+   if(it.y>world.h+50) state.items.splice(i,1);
+ }
+}
+
+function render(){
+ ctx.clearRect(0,0,world.w,world.h);
+ drawPlayer();
+ state.items.forEach(drawItem);
+}
+
+let last=performance.now();
+function loop(now){
+ const dt=Math.min(0.033,(now-last)/1000);
+ last=now;
+ if(state.running) update(dt);
+ render();
+ requestAnimationFrame(loop);
+}
+loop(last);
+
+window.addEventListener("keydown",e=>{
+ if(e.key==="ArrowLeft") input.left=true;
+ if(e.key==="ArrowRight") input.right=true;
+});
+window.addEventListener("keyup",e=>{
+ if(e.key==="ArrowLeft") input.left=false;
+ if(e.key==="ArrowRight") input.right=false;
+});
+
+btnLeft.addEventListener("pointerdown",()=>input.left=true);
+btnLeft.addEventListener("pointerup",()=>input.left=false);
+btnRight.addEventListener("pointerdown",()=>input.right=true);
+btnRight.addEventListener("pointerup",()=>input.right=false);
+
+btnStart.addEventListener("click",()=>{
+ initAudio();
+ overlay.style.display="none";
+ resetGame();
+ startCountdown();
+});
+
+})();
+</script>
+</body>
+</html>
