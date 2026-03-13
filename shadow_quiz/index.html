@@ -231,6 +231,24 @@ html, body {
 .silhouette-svg.hint-active {
   filter: drop-shadow(0 4px 18px rgba(0,0,0,0.18)) drop-shadow(0 0 12px rgba(255,200,80,0.7));
 }
+/* 정답 reveal 애니메이션 */
+@keyframes revealColor {
+  0%   { opacity: 0; transform: scale(0.7) rotate(-8deg); }
+  50%  { opacity: 1; transform: scale(1.12) rotate(4deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.reveal-layer {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+}
+.reveal-emoji {
+  font-size: clamp(72px, 18vw, 110px);
+  animation: revealColor 0.55s cubic-bezier(.34,1.56,.64,1) forwards;
+  filter: drop-shadow(0 6px 20px rgba(0,0,0,0.22));
+  line-height: 1;
+}
 
 /* 골든 문제 배지 */
 .golden-badge {
@@ -310,6 +328,14 @@ html, body {
   75%{transform:translateX(5px)}
 }
 .choice-btn:disabled { cursor: default; }
+
+/* 실루엣 카드 reveal 상태 */
+.silhouette-card.revealed {
+  background: linear-gradient(135deg, #e8f9f0 0%, #d4f7f0 100%);
+}
+.silhouette-card.revealed .silhouette-svg {
+  opacity: 0.08;
+}
 
 /* ════════════════════════
    게임오버 / 레벨업 화면
@@ -890,6 +916,21 @@ const SILHOUETTES = [
           L112,112 L132,112 L132,95 Q132,82 122,82 Q112,82 112,95 L112,160 Z` },
 ];
 
+/* 각 실루엣의 이모지 (정답 reveal 연출용) */
+const SIL_EMOJI = {
+  cat:'🐱', dog:'🐶', elephant:'🐘', rabbit:'🐰', fish:'🐟',
+  bird:'🐦', lion:'🦁', fox:'🦊', bear:'🐻', wolf:'🐺',
+  chair:'🪑', bicycle:'🚲', guitar:'🎸', camera:'📷', umbrella:'☂️',
+  crown:'👑', rocket:'🚀', key:'🗝️', hourglass:'⏳',
+  hamburger:'🍔', pizza:'🍕', icecream:'🍦', apple:'🍎',
+  cake:'🎂', sushi:'🍣', donut:'🍩',
+  butterfly:'🦋', spider:'🕷️', bee:'🐝', ant:'🐜',
+  dragonfly:'🪲', mosquito:'🦟',
+  car:'🚗', airplane:'✈️', ship:'🚢', train:'🚂',
+  house:'🏠', lamp:'🪔', trophy:'🏆',
+  tree:'🌳', flower:'🌸', mushroom:'🍄', cactus:'🌵',
+};
+
 /* 카테고리별 묶음 (선택지 오답 생성용) */
 const CAT_NAMES = {
   animal: SILHOUETTES.filter(s=>s.cat==='animal').map(s=>s.name),
@@ -945,6 +986,7 @@ function initGS() {
     rotAngle:     0,
     animFrame:    null,
     isGolden:     false,
+    usedIds:      new Set(), // 게임오버 전까지 출제된 문제 ID 추적
   };
 }
 
@@ -953,9 +995,16 @@ function initGS() {
 ════════════════════════════════════════════ */
 function buildQueue(levelCfg) {
   const { qCount, maxDiff, sameCat } = levelCfg;
-  const pool = SILHOUETTES.filter(s => s.difficulty <= maxDiff);
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  // 이미 출제된 문제 제외 (게임오버 전까지 중복 방지)
+  const pool = SILHOUETTES.filter(s => s.difficulty <= maxDiff && !GS.usedIds.has(s.id));
+  // 남은 문제가 없으면 전체에서 다시 (극단적 케이스)
+  const source = pool.length >= qCount ? pool
+    : SILHOUETTES.filter(s => s.difficulty <= maxDiff);
+  const shuffled = [...source].sort(() => Math.random() - 0.5);
   const chosen = shuffled.slice(0, Math.min(qCount, shuffled.length));
+
+  // 사용한 ID 기록
+  chosen.forEach(s => GS.usedIds.add(s.id));
 
   // 골든 문제: 레벨당 1개, 50% 확률
   const goldenIdx = Math.random() < 0.5 ? Math.floor(Math.random() * chosen.length) : -1;
@@ -1124,8 +1173,6 @@ function onAnswer(chosen, correct, btn) {
 
   if (isCorrect) {
     btn.classList.add('correct');
-    document.getElementById('silCard').classList.add('correct-flash');
-    setTimeout(() => document.getElementById('silCard').classList.remove('correct-flash'), 400);
 
     GS.combo++;
     GS.maxCombo = Math.max(GS.maxCombo, GS.combo);
@@ -1140,9 +1187,24 @@ function onAnswer(chosen, correct, btn) {
     else if (GS.combo >= 2)  pts = 2;
     GS.score += pts;
 
-    // 파티클
+    // ── 정답 실루엣 reveal 연출 ──
     const card = document.getElementById('silCard');
+    card.classList.add('revealed');
+    // 기존 reveal layer 제거 후 새로 생성
+    const oldLayer = card.querySelector('.reveal-layer');
+    if (oldLayer) oldLayer.remove();
+    const layer = document.createElement('div');
+    layer.className = 'reveal-layer';
+    const emoji = SIL_EMOJI[GS.currentQ.sil.id] || '✨';
+    const eSpan = document.createElement('span');
+    eSpan.className = 'reveal-emoji';
+    eSpan.textContent = emoji;
+    layer.appendChild(eSpan);
+    card.appendChild(layer);
+
     const r = card.getBoundingClientRect();
+
+    // 파티클
     spawnParticles(r.left + r.width/2, r.top + r.height/2,
       GS.currentQ.isGolden ? '#f9c74f' : '#2a9d8f', 22, GS.currentQ.isGolden);
 
@@ -1160,7 +1222,13 @@ function onAnswer(chosen, correct, btn) {
 
     updateHUD();
 
-    setTimeout(() => nextQuestion(), 800);
+    setTimeout(() => {
+      // reveal 정리 후 다음 문제
+      card.classList.remove('revealed');
+      const rl = card.querySelector('.reveal-layer');
+      if (rl) rl.remove();
+      nextQuestion();
+    }, 950);
   } else {
     btn.classList.add('wrong');
     document.getElementById('silCard').classList.add('shake');
@@ -1201,6 +1269,12 @@ function loadQuestion(q) {
   GS.currentQ = q;
   GS.answered = false;
   GS.isGolden = q.isGolden;
+
+  // 이전 reveal 상태 정리
+  const card = document.getElementById('silCard');
+  card.classList.remove('revealed');
+  const oldLayer = card.querySelector('.reveal-layer');
+  if (oldLayer) oldLayer.remove();
 
   renderSilhouette(q.sil, 0, 0, q.isGolden);
   renderChoices(q.choices, q.sil.name);
