@@ -202,6 +202,7 @@
     .game-card[data-theme="cyan"]:hover   { box-shadow: 0 20px 50px rgba(6,182,212,0.3),  0 0 0 1px rgba(6,182,212,0.4);  border-color: rgba(6,182,212,0.5); }
     .game-card[data-theme="rose"]:hover   { box-shadow: 0 20px 50px rgba(251,113,133,0.3),0 0 0 1px rgba(251,113,133,0.4); border-color: rgba(251,113,133,0.5); }
     .game-card[data-theme="lime"]:hover   { box-shadow: 0 20px 50px rgba(132,204,22,0.3), 0 0 0 1px rgba(132,204,22,0.4);  border-color: rgba(132,204,22,0.5); }
+    .game-card[data-theme="violet"]:hover { box-shadow: 0 20px 50px rgba(139,92,246,0.3), 0 0 0 1px rgba(139,92,246,0.4); border-color: rgba(139,92,246,0.5); }
 
     /* ─── 썸네일 ─── */
     .thumbnail {
@@ -224,6 +225,7 @@
     .thumb-cyan   { background: linear-gradient(135deg, #042f44 0%, #0c5f7a 50%, #06b6d4 100%); }
     .thumb-rose   { background: linear-gradient(135deg, #3b0a1f 0%, #9f1239 50%, #fb7185 100%); }
     .thumb-lime   { background: linear-gradient(135deg, #1a2e00 0%, #3d6b00 50%, #84cc16 100%); }
+    .thumb-violet { background: linear-gradient(135deg, #1a0a2e 0%, #4c1d95 50%, #7c3aed 100%); }
 
     /* 썸네일 이모지/배경 장식 */
     .thumb-bg-emoji {
@@ -321,6 +323,7 @@
     .tag-cyan   { background: rgba(6,182,212,0.15);  border-color: rgba(6,182,212,0.3);  color: #67e8f9; }
     .tag-rose   { background: rgba(251,113,133,0.15); border-color: rgba(251,113,133,0.3); color: #fda4af; }
     .tag-lime   { background: rgba(132,204,22,0.15); border-color: rgba(132,204,22,0.3); color: #bef264; }
+    .tag-violet { background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.3); color: #c4b5fd; }
 
     /* ─── 카드 푸터 ─── */
     .card-footer {
@@ -457,11 +460,12 @@
     <button class="filter-btn" data-filter="avoid">🏃 피하기</button>
     <button class="filter-btn" data-filter="simulation">🐰 육성</button>
     <button class="filter-btn" data-filter="feeding">🍽️ 먹이기</button>
+    <button class="filter-btn" data-filter="puzzle">🧩 퍼즐</button>
   </div>
 
   <!-- ─── 카운터 ─── -->
   <div class="game-count">
-    총 <strong id="visibleCount">9</strong>개의 게임
+    총 <strong id="visibleCount">10</strong>개의 게임
   </div>
 
   <!-- ─── 게임 그리드 ─── -->
@@ -811,6 +815,46 @@
       </div>
     </a>
 
+
+    <!-- 10. 그림자를 보고 맞춰라 -->
+    <a class="game-card"
+       href="shadow_quiz/index.html"
+       data-theme="violet"
+       data-tags="yuha puzzle quiz silhouette"
+       data-author="yuha">
+      <div class="thumbnail thumb-violet">
+        <span class="thumb-bg-emoji">🌑</span>
+        <div class="thumb-main">
+          <span class="thumb-icon">🔍</span>
+          <div class="thumb-title">그림자를 보고 맞춰라!</div>
+        </div>
+        <div class="badge-new">NEW</div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">그림자를 보고 맞춰라! 🌑</div>
+        <div class="card-desc">
+          검은 실루엣을 보고 4개 선택지 중 정답을 맞히는 퍼즐 게임!
+          콤보 보너스, 황금 문제, 힌트 시스템, 10단계 레벨까지 도전해보세요 🔥
+        </div>
+        <div class="card-tags">
+          <span class="tag tag-violet">퍼즐</span>
+          <span class="tag tag-violet">실루엣</span>
+          <span class="tag tag-violet">콤보</span>
+          <span class="tag tag-violet">10레벨</span>
+        </div>
+        <div class="card-footer">
+          <div class="maker-badge">
+            <div class="maker-dot maker-yuha">🦋</div>
+            <span>홍유화 다섯 번째 게임</span>
+          </div>
+          <div class="play-btn">
+            <span>플레이</span>
+            <div class="play-arrow">▶</div>
+          </div>
+        </div>
+      </div>
+    </a>
+
   </main>
 
   <!-- ─── 푸터 ─── -->
@@ -849,6 +893,7 @@
           else if (filter === 'avoid')      show = tags.includes('avoid');
           else if (filter === 'simulation') show = tags.includes('simulation');
           else if (filter === 'feeding')    show = tags.includes('feeding');
+          else if (filter === 'puzzle')     show = tags.includes('puzzle');
 
           if (show) {
             card.classList.remove('hidden');
