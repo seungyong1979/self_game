@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🍽️ 나 잡아봐라~ 먹여줘!!</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg: #fff8f0;
+  --accent: #ff6b6b;
+  --accent2: #ffa94d;
+  --card: #fff;
+  --shadow: rgba(0,0,0,0.12);
+}
+html, body {
+  width:100%; height:100%; overflow:hidden;
+  font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  background: var(--bg);
+  touch-action: none;
+  user-select: none;
+}
+#app {
+  width:100vw; height:100vh;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  position:relative;
+}
+
+/* ── 화면 전환 ── */
+.screen { display:none; width:100%; height:100%; position:absolute; top:0; left:0; flex-direction:column; align-items:center; justify-content:center; }
+.screen.active { display:flex; }
+
+/* ── 타이틀 화면 ── */
+#titleScreen {
+  background: linear-gradient(160deg, #fff5e6 0%, #ffe0cc 100%);
+  gap: 18px;
+}
+.title-emoji { font-size: clamp(60px,12vw,90px); animation: bounce 1.2s infinite alternate; }
+@keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-14px)} }
+.title-text { font-size: clamp(22px,5vw,36px); font-weight:900; color:#d63030; text-align:center; line-height:1.2; }
+.title-sub { font-size: clamp(12px,2.5vw,15px); color:#888; text-align:center; }
+.btn-start {
+  margin-top:10px;
+  padding: 16px 48px; font-size: clamp(16px,3vw,20px); font-weight:900;
+  background: linear-gradient(135deg, #ff6b6b, #ff9a3c);
+  color:#fff; border:none; border-radius:999px; cursor:pointer;
+  box-shadow: 0 6px 20px rgba(255,107,107,0.45);
+  transition: transform 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+.btn-start:active { transform:scale(0.96); box-shadow: 0 2px 10px rgba(255,107,107,0.3); }
+
+/* ── 오디오 컨트롤 바 ── */
+#audioBar {
+  position:fixed; top:10px; right:10px; z-index:100;
+  display:flex; gap:6px;
+}
+.audio-btn {
+  padding: 7px 13px; font-size:12px; font-weight:700;
+  background: rgba(255,255,255,0.9); border:1.5px solid #ddd; border-radius:999px;
+  cursor:pointer; font-family:inherit; backdrop-filter:blur(6px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition:background 0.15s;
+  white-space:nowrap;
+}
+.audio-btn.on  { background:#ffeaa7; border-color:#fdcb6e; }
+.audio-btn.off { background:#f0f0f0; color:#aaa; }
+
+/* ── 게임 화면 ── */
+#gameScreen {
+  background: linear-gradient(160deg, #fff8f0 0%, #ffecd2 100%);
+  position:relative;
+}
+#gameCanvas {
+  display:block;
+  touch-action: none;
+  cursor: default;
+}
+
+/* ── 오버레이(결과/다음스테이지) ── */
+#overlay {
+  position:absolute; inset:0;
+  display:none; align-items:center; justify-content:center;
+  background: rgba(0,0,0,0.5); z-index:50; flex-direction:column; gap:14px;
+  backdrop-filter:blur(4px);
+}
+#overlay.show { display:flex; }
+.overlay-card {
+  background:#fff; border-radius:24px; padding:30px 40px;
+  text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.25);
+  max-width:320px; width:90%;
+}
+.overlay-emoji { font-size:56px; display:block; margin-bottom:8px; }
+.overlay-title { font-size:24px; font-weight:900; margin-bottom:6px; color:#222; }
+.overlay-sub   { font-size:14px; color:#888; margin-bottom:18px; line-height:1.5; }
+.overlay-btn {
+  padding:13px 32px; font-size:16px; font-weight:900;
+  background:linear-gradient(135deg,#ff6b6b,#ff9a3c);
+  color:#fff; border:none; border-radius:999px; cursor:pointer;
+  font-family:inherit; box-shadow:0 4px 16px rgba(255,107,107,0.4);
+  transition: transform 0.15s;
+}
+.overlay-btn:active { transform:scale(0.96); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 오디오 컨트롤 -->
+  <div id="audioBar">
+    <button class="audio-btn off" id="btnVoice" onclick="toggleVoice()">🗣️ 목소리 OFF</button>
+    <button class="audio-btn off" id="btnSound" onclick="toggleSound()">🔊 사운드 OFF</button>
+  </div>
+
+  <!-- 타이틀 -->
+  <div class="screen active" id="titleScreen">
+    <div class="title-emoji">🍽️</div>
+    <div class="title-text">나 잡아봐라~<br>먹여줘!!</div>
+    <div class="title-sub">음식을 드래그해서 입에 넣어주세요!<br>독 음식은 절대 금지! 💀</div>
+    <button class="btn-start" onclick="startGame()">게임 시작!</button>
+  </div>
+
+  <!-- 게임 -->
+  <div class="screen" id="gameScreen">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <!-- 오버레이 -->
+  <div id="overlay">
+    <div class="overlay-card">
+      <span class="overlay-emoji" id="ovEmoji">😊</span>
+      <div class="overlay-title" id="ovTitle">스테이지 클리어!</div>
+      <div class="overlay-sub"  id="ovSub">잘 먹었어요!</div>
+      <button class="overlay-btn" id="ovBtn" onclick="overlayAction()">다음 스테이지</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   ▌ 설정값
+═══════════════════════════════════════════ */
+const CFG = {
+  STAGE_TIME:        20,      // 초
+  GOAL_COUNT:        3,       // 먹어야 할 수
+  FAT_MAX:           5,
+  FAT_MIN:          -5,
+  ENABLE_BODY_LIMITS: true,   // fatLevel 한계 패널티/보너스 ON/OFF
+  SPICY_IS_JUNK:     true,    // 매운 음식도 정크 취급
+};
+
+/* ═══════════════════════════════════════════
+   ▌ 음식 데이터
+═══════════════════════════════════════════ */
+const FOOD_SAFE = [
+  // 정크
+  { e:'🍔', name:'햄버거',   type:'junk'    },
+  { e:'🍕', name:'피자',     type:'junk'    },
+  { e:'🍟', name:'감자튀김', type:'junk'    },
+  { e:'🌭', name:'핫도그',   type:'junk'    },
+  { e:'🍩', name:'도넛',     type:'junk'    },
+  { e:'🍪', name:'쿠키',     type:'junk'    },
+  { e:'🍦', name:'아이스크림',type:'normal' },
+  { e:'🍰', name:'케이크',   type:'normal'  },
+  { e:'🍣', name:'초밥',     type:'normal'  },
+  { e:'🍱', name:'도시락',   type:'normal'  },
+  { e:'🍙', name:'주먹밥',   type:'normal'  },
+  { e:'🍜', name:'라멘',     type:'spicy'   },
+  { e:'🌮', name:'타코',     type:'spicy'   },
+  { e:'🥟', name:'만두',     type:'spicy'   },
+  { e:'🍗', name:'치킨',     type:'normal'  },
+  { e:'🍫', name:'초콜릿',   type:'normal'  },
+  { e:'🧁', name:'컵케이크', type:'normal'  },
+  // 야채/건강
+  { e:'🥦', name:'브로콜리', type:'veggie'  },
+  { e:'🥬', name:'상추',     type:'veggie'  },
+  { e:'🫑', name:'파프리카', type:'veggie'  },
+  { e:'🧅', name:'양파',     type:'veggie'  },
+  { e:'🧄', name:'마늘',     type:'veggie'  },
+  { e:'🥕', name:'당근',     type:'veggie'  },
+  { e:'🍎', name:'사과',     type:'veggie'  },
+  { e:'🍇', name:'포도',     type:'veggie'  },
+];
+
+const POISON_LIST = [
+  { type:'poison', name:'독버섯',     drawFn:'mushroom'    },
+  { type:'poison', name:'복어',       drawFn:'pufferfish'  },
+  { type:'poison', name:'싹난 감자',  drawFn:'potato'      },
+  { type:'poison', name:'오래된생선', drawFn:'rottenfish'  },
+  { type:'poison', name:'똥파리',     drawFn:'fly'         },
+  { type:'poison', name:'곰팡이',     drawFn:'mold'        },
+  { type:'poison', name:'독사',       drawFn:'snake'       },
+  { type:'poison', name:'푸른고리문어',drawFn:'octopus'    },
+  { type:'poison', name:'말벌',       drawFn:'wasp'        },
+  { type:'poison', name:'지네',       drawFn:'centipede'   },
+];
+
+/* ═══════════════════════════════════════════
+   ▌ 오디오 시스템
+═══════════════════════════════════════════ */
+let audioCtx = null;
+let voiceOn  = false;
+let soundOn  = false;
+let bgmNode  = null;
+let bgmGain  = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function toggleVoice() {
+  voiceOn = !voiceOn;
+  const btn = document.getElementById('btnVoice');
+  btn.textContent = voiceOn ? '🗣️ 목소리 ON' : '🗣️ 목소리 OFF';
+  btn.className = 'audio-btn ' + (voiceOn ? 'on' : 'off');
+  if (voiceOn) speak('목소리 켰어요');
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  const btn = document.getElementById('btnSound');
+  btn.textContent = soundOn ? '🔊 사운드 ON' : '🔊 사운드 OFF';
+  btn.className = 'audio-btn ' + (soundOn ? 'on' : 'off');
+  if (soundOn) { startBGM(); playSFX('toggle'); }
+  else stopBGM();
+}
+
+function speak(text) {
+  if (!voiceOn || !window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ko-KR'; u.rate = 1.05; u.pitch = 1.1;
+  speechSynthesis.speak(u);
+}
+
+function startBGM() {
+  if (!soundOn) return;
+  stopBGM();
+  const ac = getAudioCtx();
+  bgmGain = ac.createGain(); bgmGain.gain.value = 0.18;
+  bgmGain.connect(ac.destination);
+  const notes = [261.6,293.7,329.6,349.2,392,440,493.9,523.3];
+  let t = ac.currentTime;
+  const seq = [0,2,4,5,7,9,7,5,4,2,0,2,4,2,0];
+  function loop() {
+    seq.forEach((n,i)=>{
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      o.connect(g); g.connect(bgmGain);
+      o.type = 'sine'; o.frequency.value = notes[n % notes.length] * (n>7?2:1);
+      g.gain.setValueAtTime(0,t+i*0.28);
+      g.gain.linearRampToValueAtTime(0.5,t+i*0.28+0.05);
+      g.gain.linearRampToValueAtTime(0,t+i*0.28+0.25);
+      o.start(t+i*0.28); o.stop(t+i*0.28+0.28);
+    });
+    t += seq.length*0.28;
+    bgmNode = setTimeout(loop, (seq.length*0.28 - (ac.currentTime - (t - seq.length*0.28)))*1000 - 50);
+  }
+  loop();
+}
+
+function stopBGM() { if(bgmNode){ clearTimeout(bgmNode); bgmNode=null; } }
+
+function playSFX(type) {
+  if (!soundOn) return;
+  const ac = getAudioCtx();
+  const o = ac.createOscillator();
+  const g = ac.createGain();
+  o.connect(g); g.connect(ac.destination);
+  const now = ac.currentTime;
+  if (type==='eat')    { o.type='sine';   o.frequency.setValueAtTime(600,now); o.frequency.linearRampToValueAtTime(900,now+0.1); g.gain.setValueAtTime(0.4,now); g.gain.linearRampToValueAtTime(0,now+0.2); o.start(now); o.stop(now+0.2); }
+  if (type==='veggie') { o.type='sine';   o.frequency.setValueAtTime(500,now); o.frequency.linearRampToValueAtTime(750,now+0.15); g.gain.setValueAtTime(0.3,now); g.gain.linearRampToValueAtTime(0,now+0.25); o.start(now); o.stop(now+0.25); }
+  if (type==='spicy')  { o.type='sawtooth'; o.frequency.setValueAtTime(300,now); o.frequency.linearRampToValueAtTime(150,now+0.2); g.gain.setValueAtTime(0.3,now); g.gain.linearRampToValueAtTime(0,now+0.25); o.start(now); o.stop(now+0.25); }
+  if (type==='poison') { o.type='square'; o.frequency.setValueAtTime(200,now); o.frequency.linearRampToValueAtTime(50,now+0.5);  g.gain.setValueAtTime(0.5,now); g.gain.linearRampToValueAtTime(0,now+0.6);  o.start(now); o.stop(now+0.6); }
+  if (type==='clear')  { [523,659,784,1046].forEach((f,i)=>{ const oo=ac.createOscillator(),gg=ac.createGain(); oo.connect(gg); gg.connect(ac.destination); oo.type='sine'; oo.frequency.value=f; gg.gain.setValueAtTime(0.3,now+i*0.1); gg.gain.linearRampToValueAtTime(0,now+i*0.1+0.15); oo.start(now+i*0.1); oo.stop(now+i*0.1+0.2); }); }
+  if (type==='fail')   { [300,250,180].forEach((f,i)=>{ const oo=ac.createOscillator(),gg=ac.createGain(); oo.connect(gg); gg.connect(ac.destination); oo.type='sawtooth'; oo.frequency.value=f; gg.gain.setValueAtTime(0.35,now+i*0.12); gg.gain.linearRampToValueAtTime(0,now+i*0.12+0.18); oo.start(now+i*0.12); oo.stop(now+i*0.12+0.2); }); }
+  if (type==='toggle') { o.type='sine'; o.frequency.value=800; g.gain.setValueAtTime(0.2,now); g.gain.linearRampToValueAtTime(0,now+0.1); o.start(now); o.stop(now+0.1); }
+}
+
+/* ═══════════════════════════════════════════
+   ▌ 게임 상태
+═══════════════════════════════════════════ */
+let GS = {}; // 게임 상태
+
+function initGS() {
+  GS = {
+    stage:       1,
+    fatLevel:    0,       // -5 ~ +5
+    eatCount:    0,
+    timeLeft:    CFG.STAGE_TIME,
+    running:     false,
+    over:        false,
+    foods:       [],
+    drag:        null,    // { idx, offX, offY }
+    faceExpr:    'normal',// normal|happy|spicy|veggie|dead
+    exprTimer:   0,
+    mouthOpen:   0,       // 0~1 애니
+    chewTimer:   0,
+    timerInterval: null,
+    animId:      null,
+    fatBonus:    false,   // -5 보너스 적용 여부
+  };
+}
+
+/* ═══════════════════════════════════════════
+   ▌ 캔버스/레이아웃
+═══════════════════════════════════════════ */
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+let CW, CH, CX, CY; // 캔버스 크기, 얼굴 중심
+let FACE_R;          // 기본 얼굴 반지름
+let MOUTH_Y;         // 입 Y 위치 (캔버스 상대)
+let FOOD_ZONE_Y;     // 음식 배치 시작 Y
+let FOOD_SIZE;       // 음식 이모지 크기
+
+function resizeCanvas() {
+  const scr = document.getElementById('gameScreen');
+  CW = scr.clientWidth;
+  CH = scr.clientHeight;
+  canvas.width  = CW;
+  canvas.height = CH;
+
+  FACE_R     = Math.min(CW, CH) * 0.22;
+  CX         = CW / 2;
+  CY         = CH * 0.30;
+  MOUTH_Y    = CY + FACE_R * 0.35;
+  FOOD_ZONE_Y= CY + FACE_R + CH * 0.07;
+  FOOD_SIZE  = Math.min(CW, CH) * 0.085;
+}
+
+/* ═══════════════════════════════════════════
+   ▌ 음식 배치
+═══════════════════════════════════════════ */
+function buildFoods() {
+  // 안전 음식 7개 랜덤
+  const pool  = [...FOOD_SAFE].sort(()=>Math.random()-0.5).slice(0,7);
+  // 독 1개 랜덤
+  const poison = POISON_LIST[Math.floor(Math.random()*POISON_LIST.length)];
+  const all = [...pool, poison].sort(()=>Math.random()-0.5);
+
+  // 2열 배치 (4+4)
+  const cols = 4;
+  const rows = 2;
+  const spacing = CW / (cols + 1);
+  const rowH    = FOOD_SIZE * 2.4;
+  GS.foods = all.map((f, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    return {
+      ...f,
+      x: spacing * (col + 1),
+      y: FOOD_ZONE_Y + row * rowH,
+      size: FOOD_SIZE,
+      eaten: false,
+      baseX: spacing * (col + 1),
+      baseY: FOOD_ZONE_Y + row * rowH,
+    };
+  });
+}
+
+/* ═══════════════════════════════════════════
+   ▌ 독 음식 캔버스 드로잉 함수들
+═══════════════════════════════════════════ */
+function drawPoison(ctx, food, x, y, size) {
+  const s = size * 0.42;
+  ctx.save();
+  ctx.translate(x, y);
+  switch(food.drawFn) {
+    case 'mushroom':    drawMushroom(ctx, s);   break;
+    case 'pufferfish':  drawPufferfish(ctx, s); break;
+    case 'potato':      drawPotato(ctx, s);     break;
+    case 'rottenfish':  drawRottenFish(ctx, s); break;
+    case 'fly':         drawFly(ctx, s);        break;
+    case 'mold':        drawMold(ctx, s);       break;
+    case 'snake':       drawSnake(ctx, s);      break;
+    case 'octopus':     drawOctopus(ctx, s);    break;
+    case 'wasp':        drawWasp(ctx, s);       break;
+    case 'centipede':   drawCentipede(ctx, s);  break;
+  }
+  ctx.restore();
+}
+
+function drawMushroom(ctx, s) {
+  // 랜덤 색 독버섯 - 저장된 seed 활용
+  const colors = ['#c0392b','#8e44ad','#2980b9','#16a085','#f39c12'];
+  const col = colors[Math.floor(Math.abs(s*10))%colors.length] || '#c0392b';
+  ctx.fillStyle = '#f5cba7'; ctx.beginPath(); ctx.ellipse(0,s*0.3,s*0.35,s*0.55,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(0,-s*0.1,s*0.7,s*0.55,0,Math.PI,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.55)';
+  [[-0.3,-0.25],[0.15,-0.38],[-0.05,-0.1],[0.38,-0.18]].forEach(([dx,dy])=>{ ctx.beginPath(); ctx.ellipse(dx*s,dy*s,s*0.1,s*0.07,0,0,Math.PI*2); ctx.fill(); });
+}
+
+function drawPufferfish(ctx, s) {
+  ctx.fillStyle = '#f0d060'; ctx.beginPath(); ctx.arc(0,0,s*0.7,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#c8a020'; ctx.lineWidth=s*0.07;
+  for(let i=0;i<12;i++){const a=i/12*Math.PI*2; ctx.beginPath(); ctx.moveTo(Math.cos(a)*s*0.68,Math.sin(a)*s*0.68); ctx.lineTo(Math.cos(a)*s*1.0,Math.sin(a)*s*1.0); ctx.stroke();}
+  ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(-s*0.2,-s*0.1,s*0.12,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(-s*0.16,-s*0.14,s*0.05,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#333'; ctx.lineWidth=s*0.06; ctx.beginPath(); ctx.moveTo(0,s*0.2); ctx.lineTo(-s*0.15,s*0.38); ctx.moveTo(0,s*0.2); ctx.lineTo(s*0.15,s*0.38); ctx.stroke();
+}
+
+function drawPotato(ctx, s) {
+  ctx.fillStyle='#c8a060'; ctx.beginPath(); ctx.ellipse(s*0.1,s*0.05,s*0.65,s*0.5,0.2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#a07840';
+  [{x:-0.2,y:-0.2},{x:0.3,y:-0.1},{x:-0.1,y:0.25},{x:0.25,y:0.3}].forEach(p=>{ctx.beginPath();ctx.ellipse(p.x*s,p.y*s,s*0.07,s*0.05,0,0,Math.PI*2);ctx.fill();});
+  ctx.strokeStyle='#5a8a30'; ctx.lineWidth=s*0.06;
+  [{x:0.15,y:-0.35,a:-0.5},{x:-0.1,y:-0.4,a:0.4},{x:0.35,y:-0.28,a:0.8}].forEach(p=>{
+    ctx.save(); ctx.translate(p.x*s,p.y*s); ctx.rotate(p.a);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(s*0.12,s*0.08,s*0.05,s*0.22);
+    ctx.stroke(); ctx.restore();
+  });
+}
+
+function drawRottenFish(ctx, s) {
+  ctx.fillStyle='#8d9e7a'; ctx.beginPath(); ctx.ellipse(0,0,s*0.75,s*0.38,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#7a8a6a'; ctx.beginPath(); ctx.moveTo(s*0.72,0); ctx.lineTo(s*1.0,-s*0.3); ctx.lineTo(s*1.0,s*0.3); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#c0c0c0'; ctx.beginPath(); ctx.arc(-s*0.25,-s*0.05,s*0.12,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(-s*0.22,-s*0.07,s*0.07,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(100,180,100,0.7)'; ctx.lineWidth=s*0.07;
+  for(let i=0;i<5;i++){ctx.beginPath();ctx.arc((i-2)*s*0.2,s*0.15+Math.sin(i)*s*0.1,s*0.06,0,Math.PI*2);ctx.stroke();}
+  ctx.fillStyle='rgba(150,255,100,0.35)'; ctx.beginPath(); ctx.ellipse(0,s*0.05,s*0.5,s*0.2,0,0,Math.PI*2); ctx.fill();
+}
+
+function drawFly(ctx, s) {
+  ctx.fillStyle='#222'; ctx.beginPath(); ctx.ellipse(0,s*0.1,s*0.28,s*0.38,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(0,-s*0.22,s*0.22,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(150,220,255,0.55)';
+  ctx.beginPath(); ctx.ellipse(-s*0.5,-s*0.05,s*0.42,s*0.2,-0.4,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(s*0.5,-s*0.05,s*0.42,s*0.2,0.4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ff2020'; ctx.beginPath(); ctx.arc(-s*0.08,-s*0.22,s*0.08,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(s*0.08,-s*0.22,s*0.08,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#555'; ctx.lineWidth=s*0.04;
+  for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(i*s*0.1,s*0.1);ctx.lineTo(i*s*0.1-s*0.05*Math.sign(i||1),-s*0.05);ctx.stroke();}
+}
+
+function drawMold(ctx, s) {
+  ctx.fillStyle='#8B7355'; ctx.beginPath(); ctx.roundRect(-s*0.6,-s*0.35,s*1.2,s*0.7,s*0.12); ctx.fill();
+  const moldColors=['#4a7c4a','#3a9a3a','#7aad2a','#2e7d32'];
+  for(let i=0;i<14;i++){
+    const mx=(Math.cos(i*1.7)*0.45+Math.sin(i*0.9)*0.1)*s;
+    const my=(Math.sin(i*2.1)*0.25+Math.cos(i*0.7)*0.05)*s;
+    ctx.fillStyle=moldColors[i%moldColors.length];
+    ctx.beginPath(); ctx.arc(mx,my,s*(0.08+Math.sin(i)*0.04),0,Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle='rgba(0,180,0,0.2)'; ctx.beginPath(); ctx.ellipse(0,0,s*0.5,s*0.3,0,0,Math.PI*2); ctx.fill();
+}
+
+function drawSnake(ctx, s) {
+  ctx.strokeStyle='#2a6a2a'; ctx.lineWidth=s*0.28; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(-s*0.8,s*0.3); ctx.bezierCurveTo(-s*0.4,-s*0.5,s*0.4,s*0.5,s*0.6,-s*0.2);
+  ctx.stroke();
+  ctx.strokeStyle='#1a4a1a'; ctx.lineWidth=s*0.07;
+  for(let t=0;t<=1;t+=0.07){
+    const bx=(1-t)*(1-t)*(1-t)*(-s*0.8)+(3*(1-t)*(1-t)*t)*(-s*0.4)+(3*(1-t)*t*t)*(s*0.4)+t*t*t*(s*0.6);
+    const by=(1-t)*(1-t)*(1-t)*(s*0.3)+(3*(1-t)*(1-t)*t)*(-s*0.5)+(3*(1-t)*t*t)*(s*0.5)+t*t*t*(-s*0.2);
+    ctx.beginPath();ctx.moveTo(bx-s*0.05,by);ctx.lineTo(bx+s*0.05,by);ctx.stroke();
+  }
+  ctx.fillStyle='#1a5a1a'; ctx.beginPath(); ctx.arc(s*0.6,-s*0.2,s*0.2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ffd700'; ctx.beginPath(); ctx.arc(s*0.52,-s*0.26,s*0.08,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(s*0.68,-s*0.26,s*0.08,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#ff2020'; ctx.lineWidth=s*0.04;
+  ctx.beginPath(); ctx.moveTo(s*0.78,-s*0.18); ctx.lineTo(s*0.9,-s*0.1); ctx.moveTo(s*0.78,-s*0.18); ctx.lineTo(s*0.9,-s*0.26); ctx.stroke();
+}
+
+function drawOctopus(ctx, s) {
+  ctx.fillStyle='#1a3a7a'; ctx.beginPath(); ctx.ellipse(0,-s*0.1,s*0.5,s*0.45,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#0a1a5a'; ctx.lineWidth=s*0.1; ctx.lineCap='round';
+  const tentAngles=[-0.7,-0.35,0,0.35,0.7,-1.0,1.0,-1.3];
+  tentAngles.forEach((a,i)=>{
+    ctx.beginPath();
+    const sx=Math.sin(a)*s*0.45, sy=Math.cos(a)*s*0.3;
+    ctx.moveTo(sx,sy);
+    ctx.quadraticCurveTo(sx+Math.cos(a+Math.PI/2)*s*0.3, sy+s*0.5+i*s*0.02, sx+Math.sin(a*0.5)*s*0.2, sy+s*0.85);
+    ctx.stroke();
+  });
+  ctx.strokeStyle='rgba(100,200,255,0.7)'; ctx.lineWidth=s*0.05;
+  for(let i=0;i<6;i++){ ctx.beginPath(); ctx.arc(-s*0.35+i*s*0.14,s*0.55,s*0.04,0,Math.PI*2); ctx.stroke(); }
+  ctx.fillStyle='#60d0ff'; ctx.beginPath(); ctx.arc(-s*0.18,-s*0.12,s*0.12,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(s*0.18,-s*0.12,s*0.12,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#003'; ctx.beginPath(); ctx.arc(-s*0.16,-s*0.1,s*0.06,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(s*0.16,-s*0.1,s*0.06,0,Math.PI*2); ctx.fill();
+}
+
+function drawWasp(ctx, s) {
+  ctx.fillStyle='#f5c518'; ctx.beginPath(); ctx.ellipse(0,-s*0.15,s*0.25,s*0.38,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#222';
+  for(let i=0;i<4;i++){ctx.beginPath();ctx.ellipse(0,-s*0.38+i*s*0.18,s*0.26,s*0.1,0,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle='#f5c518'; ctx.beginPath(); ctx.arc(0,-s*0.6,s*0.2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ff2020'; ctx.beginPath(); ctx.arc(-s*0.08,-s*0.63,s*0.07,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(s*0.08,-s*0.63,s*0.07,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(200,230,255,0.6)';
+  ctx.beginPath(); ctx.ellipse(-s*0.52,-s*0.2,s*0.38,s*0.16,-0.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(s*0.52,-s*0.2,s*0.38,s*0.16,0.5,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#555'; ctx.lineWidth=s*0.04;
+  ctx.beginPath(); ctx.moveTo(0,s*0.22); ctx.lineTo(-s*0.1,s*0.55); ctx.moveTo(0,s*0.22); ctx.lineTo(s*0.1,s*0.55); ctx.stroke();
+  ctx.strokeStyle='#ff3030'; ctx.lineWidth=s*0.05;
+  ctx.beginPath(); ctx.moveTo(-s*0.04,s*0.24); ctx.lineTo(0,s*0.52); ctx.stroke();
+}
+
+function drawCentipede(ctx, s) {
+  const segs=8; const segR=s*0.12;
+  for(let i=segs-1;i>=0;i--){
+    const t=i/(segs-1);
+    const x=(i-segs/2)*s*0.21;
+    const y=Math.sin(i*0.9)*s*0.12;
+    const col=i%2===0?'#8B2500':'#a83000';
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,segR,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(200,100,50,0.5)'; ctx.lineWidth=s*0.03;
+    const legLen=s*0.22;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-legLen*0.7,y-legLen); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+legLen*0.7,y-legLen); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-legLen*0.5,y+legLen*0.8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+legLen*0.5,y+legLen*0.8); ctx.stroke();
+  }
+  const hx=(-segs/2)*s*0.21; const hy=0;
+  ctx.fillStyle='#6B1800'; ctx.beginPath(); ctx.arc(hx,hy,segR*1.3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ff4'; ctx.beginPath(); ctx.arc(hx-segR*0.5,hy-segR*0.4,segR*0.35,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(hx+segR*0.5,hy-segR*0.4,segR*0.35,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#ff3030'; ctx.lineWidth=s*0.04;
+  ctx.beginPath(); ctx.moveTo(hx-segR*0.8,hy+segR*0.3); ctx.lineTo(hx-segR*1.4,hy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(hx-segR*0.8,hy+segR*0.3); ctx.lineTo(hx-segR*1.4,hy+segR*0.5); ctx.stroke();
+}
+
+/* ═══════════════════════════════════════════
+   ▌ 얼굴 드로잉 (체형 변화 포함)
+═══════════════════════════════════════════ */
+function drawFace(ctx, cx, cy, baseR, fatLevel, expr, mouthOpen) {
+  const fat = Math.max(CFG.FAT_MIN, Math.min(CFG.FAT_MAX, fatLevel));
+  const fatT = fat / CFG.FAT_MAX; // -1 ~ 1
+
+  // ── 얼굴 형태 계산 ──
+  const faceW = baseR * (1 + fatT * 0.38); // 가로 폭
+  const faceH = baseR * (1 + fatT * 0.18); // 세로 폭 (살찌면 조금)
+  const jowlR = baseR * Math.max(0, fatT) * 0.38; // 볼살 반지름
+  const chinH = baseR * (fatT > 0 ? fatT * 0.2 : 0); // 이중턱
+
+  // 피부색 (조금 불그스름할수록 살찜)
+  const skinR = Math.round(255 - fatT * 15);
+  const skinG = Math.round(200 - Math.abs(fatT)*15);
+  const skinB = Math.round(150 - fatT * 20);
+  const skinColor = `rgb(${skinR},${skinG},${skinB})`;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  // ── 목/몸통 ──
+  const bodyW = baseR * (0.55 + fatT * 0.32);
+  const bodyH = baseR * (0.6 + fatT * 0.25);
+  ctx.fillStyle = skinColor;
+  ctx.beginPath();
+  ctx.ellipse(0, faceH + bodyH * 0.4, bodyW, bodyH * 0.75, 0, 0, Math.PI);
+  ctx.fill();
+
+  // 목
+  ctx.fillStyle = skinColor;
+  ctx.fillRect(-baseR * (0.18 + fatT * 0.08), faceH * 0.75, baseR * (0.36 + fatT * 0.16), baseR * 0.3);
+
+  // ── 이중턱 ──
+  if (chinH > 0.01) {
+    ctx.fillStyle = `rgb(${skinR-8},${skinG-8},${skinB-8})`;
+    ctx.beginPath();
+    ctx.ellipse(0, faceH * 0.85 + chinH * 0.5, baseR * (0.45 + fatT * 0.2), chinH * 0.6, 0, 0, Math.PI);
+    ctx.fill();
+  }
+
+  // ── 얼굴 윤곽 ──
+  ctx.fillStyle = skinColor;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, faceW, faceH, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = `rgb(${skinR-30},${skinG-30},${skinB-30})`;
+  ctx.lineWidth = baseR * 0.025;
+  ctx.stroke();
+
+  // ── 볼살 ──
+  if (jowlR > 0.5) {
+    ctx.fillStyle = `rgba(255,${Math.round(180-fat*10)},${Math.round(150-fat*10)},${0.22+fat*0.06})`;
+    ctx.beginPath(); ctx.arc(-faceW * 0.72, faceH * 0.15, jowlR, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(faceW * 0.72,  faceH * 0.15, jowlR, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // ── 날씬 강조선 ──
+  if (fat < -1) {
+    const t = (-fat - 1) / 4;
+    ctx.strokeStyle = `rgba(${skinR-40},${skinG-40},${skinB-40},${t*0.35})`;
+    ctx.lineWidth = baseR * 0.018;
+    ctx.beginPath(); ctx.moveTo(-faceW*0.75,-faceH*0.1); ctx.quadraticCurveTo(-faceW*0.82,faceH*0.3,-faceW*0.55,faceH*0.6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(faceW*0.75,-faceH*0.1);  ctx.quadraticCurveTo(faceW*0.82,faceH*0.3,faceW*0.55,faceH*0.6);  ctx.stroke();
+  }
+
+  // ── 머리카락 ──
+  ctx.fillStyle = '#3a2010';
+  ctx.beginPath();
+  ctx.ellipse(0, -faceH * 0.82, faceW * 0.88, faceH * 0.38, 0, Math.PI, Math.PI * 2);
+  ctx.fill();
+  // 앞머리
+  const hairSteps = 6;
+  for (let i = 0; i < hairSteps; i++) {
+    const hx = (i / (hairSteps - 1) - 0.5) * 2 * faceW * 0.85;
+    const hy0 = -faceH * 0.58;
+    const hy1 = hy0 + (Math.sin(i * 1.3) * 0.5 + 0.5) * faceH * 0.22;
+    ctx.beginPath();
+    ctx.moveTo(hx, hy0);
+    ctx.quadraticCurveTo(hx + faceW * 0.04, hy1 + faceH * 0.08, hx, hy1);
+    ctx.lineWidth = faceW * 0.07;
+    ctx.strokeStyle = '#3a2010';
+    ctx.stroke();
+  }
+
+  // ── 눈썹 ──
+  ctx.strokeStyle = '#3a2010';
+  ctx.lineWidth = baseR * 0.05;
+  ctx.lineCap = 'round';
+  const eyeY  = -faceH * 0.15;
+  const eyeXL = -faceW * 0.32;
+  const eyeXR =  faceW * 0.32;
+
+  if (expr === 'spicy') {
+    // 찡그린 눈썹
+    ctx.beginPath(); ctx.moveTo(eyeXL - baseR*0.18, eyeY - baseR*0.22); ctx.lineTo(eyeXL + baseR*0.18, eyeY - baseR*0.08); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(eyeXR - baseR*0.18, eyeY - baseR*0.08); ctx.lineTo(eyeXR + baseR*0.18, eyeY - baseR*0.22); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(eyeXL - baseR*0.18, eyeY - baseR*0.12); ctx.lineTo(eyeXL + baseR*0.18, eyeY - baseR*0.18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(eyeXR - baseR*0.18, eyeY - baseR*0.18); ctx.lineTo(eyeXR + baseR*0.18, eyeY - baseR*0.12); ctx.stroke();
+  }
+
+  // ── 눈 표정 ──
+  drawEyes(ctx, eyeXL, eyeXR, eyeY, baseR, expr);
+
+  // ── 코 ──
+  ctx.fillStyle = `rgb(${skinR-35},${skinG-35},${skinB-35})`;
+  ctx.beginPath(); ctx.ellipse(0, faceH * 0.08, baseR * 0.07, baseR * 0.04, 0, 0, Math.PI * 2); ctx.fill();
+
+  // ── 입 ──
+  drawMouth(ctx, 0, faceH * 0.38, baseR, faceW, expr, mouthOpen);
+
+  // ── 볼홍조 ──
+  ctx.fillStyle = `rgba(255,150,130,${0.12 + Math.max(0,fatT)*0.1})`;
+  ctx.beginPath(); ctx.ellipse(-faceW * 0.58, faceH * 0.22, baseR*0.2, baseR*0.1, 0.2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(faceW * 0.58,  faceH * 0.22, baseR*0.2, baseR*0.1,-0.2, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+  return { mouthX: cx, mouthY: cy + faceH * 0.38, mouthR: baseR * (0.22 + (GS.fatBonus ? 0.08 : 0)) };
+}
+
+function drawEyes(ctx, xl, xr, ey, r, expr) {
+  if (expr === 'dead') {
+    ctx.strokeStyle = '#333'; ctx.lineWidth = r * 0.07; ctx.lineCap = 'round';
+    [[xl,ey],[xr,ey]].forEach(([ex,ey2])=>{
+      ctx.beginPath(); ctx.moveTo(ex-r*0.15,ey2-r*0.15); ctx.lineTo(ex+r*0.15,ey2+r*0.15); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ex+r*0.15,ey2-r*0.15); ctx.lineTo(ex-r*0.15,ey2+r*0.15); ctx.stroke();
+    });
+    return;
+  }
+  if (expr === 'happy') {
+    ctx.strokeStyle = '#333'; ctx.lineWidth = r * 0.065; ctx.lineCap = 'round';
+    [xl,xr].forEach(ex=>{
+      ctx.beginPath(); ctx.arc(ex, ey+r*0.04, r*0.15, Math.PI, Math.PI*2); ctx.stroke();
+    });
+    return;
+  }
+  if (expr === 'spicy') {
+    ctx.strokeStyle = '#c0392b'; ctx.lineWidth = r * 0.065; ctx.lineCap = 'round';
+    [xl,xr].forEach(ex=>{
+      ctx.beginPath(); ctx.moveTo(ex-r*0.15, ey-r*0.04); ctx.lineTo(ex, ey+r*0.04); ctx.lineTo(ex+r*0.15, ey-r*0.04); ctx.stroke();
+    });
+    return;
+  }
+  if (expr === 'veggie') {
+    ctx.fillStyle = '#333';
+    [xl,xr].forEach(ex=>{
+      ctx.beginPath(); ctx.arc(ex, ey, r*0.16, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.fillStyle = '#fff';
+    [xl,xr].forEach(ex=>{
+      ctx.beginPath(); ctx.arc(ex+r*0.05, ey-r*0.04, r*0.06, 0, Math.PI*2); ctx.fill();
+    });
+    return;
+  }
+  // normal
+  ctx.fillStyle = '#fff';
+  [xl,xr].forEach(ex=>{ ctx.beginPath(); ctx.ellipse(ex,ey,r*0.14,r*0.18,0,0,Math.PI*2); ctx.fill(); });
+  ctx.strokeStyle='#ddd'; ctx.lineWidth=r*0.02;
+  [xl,xr].forEach(ex=>{ ctx.beginPath(); ctx.ellipse(ex,ey,r*0.14,r*0.18,0,0,Math.PI*2); ctx.stroke(); });
+  ctx.fillStyle='#3a2a1a';
+  [xl,xr].forEach(ex=>{ ctx.beginPath(); ctx.arc(ex+r*0.02,ey+r*0.02,r*0.1,0,Math.PI*2); ctx.fill(); });
+  ctx.fillStyle='#fff';
+  [xl,xr].forEach(ex=>{ ctx.beginPath(); ctx.arc(ex+r*0.06,ey-r*0.04,r*0.04,0,Math.PI*2); ctx.fill(); });
+}
+
+function drawMouth(ctx, mx, my, r, fw, expr, open) {
+  ctx.save();
+  ctx.translate(mx, my);
+  const mw = fw * 0.38;
+
+  if (open > 0.05) {
+    // 입 열린 상태
+    ctx.fillStyle = '#8B2222';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, mw * (0.6 + open * 0.4), r * (0.08 + open * 0.18), 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ff6b6b';
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.04 * open, mw * 0.35 * open, r * 0.07 * open, 0, 0, Math.PI);
+    ctx.fill();
+    // 이빨
+    ctx.fillStyle = '#fff';
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.rect(i * mw * 0.2 - mw * 0.1 * 0.5, -r * 0.04 * open, mw * 0.1, r * 0.08 * open);
+      ctx.fill();
+    }
+    ctx.strokeStyle = '#6a1010'; ctx.lineWidth = r * 0.03;
+    ctx.beginPath(); ctx.ellipse(0, 0, mw * (0.6 + open * 0.4), r * (0.08 + open * 0.18), 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore(); return;
+  }
+
+  if (expr === 'happy') {
+    ctx.strokeStyle = '#c0392b'; ctx.lineWidth = r * 0.06; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(0, -r * 0.05, mw * 0.7, 0.2, Math.PI - 0.2); ctx.stroke();
+    ctx.restore(); return;
+  }
+  if (expr === 'spicy') {
+    ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = r * 0.06; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-mw * 0.5, 0); ctx.quadraticCurveTo(0, r * 0.12, mw * 0.5, 0); ctx.stroke();
+    ctx.restore(); return;
+  }
+  if (expr === 'dead') {
+    ctx.strokeStyle = '#555'; ctx.lineWidth = r * 0.055; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-mw * 0.45, r * 0.05); ctx.quadraticCurveTo(0, -r * 0.1, mw * 0.45, r * 0.05); ctx.stroke();
+    ctx.restore(); return;
+  }
+  // normal
+  ctx.strokeStyle = '#c0392b'; ctx.lineWidth = r * 0.05; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-mw * 0.4, 0); ctx.quadraticCurveTo(0, r * 0.08, mw * 0.4, 0); ctx.stroke();
+  ctx.restore();
+}
+
+/* ═══════════════════════════════════════════
+   ▌ HUD 드로잉
+═══════════════════════════════════════════ */
+function drawHUD(ctx, cx, facetopY, stage, eatCount, timeLeft, fatLevel) {
+  const hudY = facetopY - FACE_R * 0.05;
+  ctx.save();
+
+  // 배경 패널
+  const pw = Math.min(CW * 0.82, 380);
+  const ph = 78;
+  const px = cx - pw / 2;
+  const py = hudY - ph - 6;
+  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 14); ctx.fill();
+  ctx.strokeStyle = 'rgba(200,150,100,0.3)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 14); ctx.stroke();
+
+  // 텍스트
+  ctx.fillStyle = '#c0392b';
+  ctx.font = `bold ${Math.round(pw * 0.075)}px 'Apple SD Gothic Neo', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(`스테이지 ${stage}`, cx, py + 20);
+
+  ctx.fillStyle = '#333';
+  ctx.font = `${Math.round(pw * 0.063)}px 'Apple SD Gothic Neo', sans-serif`;
+  ctx.fillText(`목표: 음식 3개 먹이기  (현재 ${eatCount}/3)`, cx, py + 42);
+
+  const color = timeLeft <= 5 ? '#e74c3c' : '#555';
+  ctx.fillStyle = color;
+  ctx.font = `bold ${Math.round(pw * 0.063)}px 'Apple SD Gothic Neo', sans-serif`;
+  ctx.fillText(`시간: ${timeLeft.toFixed(1)}s`, cx, py + 62);
+
+  // ── 체형 게이지 ──
+  drawFatGauge(ctx, cx, py - 30, pw * 0.7, fatLevel);
+
+  ctx.restore();
+}
+
+function drawFatGauge(ctx, cx, cy, gw, fatLevel) {
+  const gh = 16;
+  const gx = cx - gw / 2;
+  const segments = 10;
+  const segW = gw / segments;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath(); ctx.roundRect(gx - 4, cy - 4, gw + 8, gh + 8, 8); ctx.fill();
+  ctx.strokeStyle = 'rgba(180,140,100,0.25)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(gx - 4, cy - 4, gw + 8, gh + 8, 8); ctx.stroke();
+
+  for (let i = 0; i < segments; i++) {
+    const val = i - 5; // -5 ~ +4
+    let color;
+    if (val < 0)      color = `rgba(80,${200+val*15},100,0.85)`;   // 날씬: 초록
+    else              color = `rgba(${200+val*8},${150-val*18},60,0.85)`; // 뚱: 주황~빨
+    const filled = (fatLevel >= 0)
+      ? (i >= 5 && i < 5 + fatLevel)
+      : (i >= 5 + fatLevel && i < 5);
+    ctx.fillStyle = filled ? color : 'rgba(220,220,220,0.5)';
+    ctx.beginPath(); ctx.roundRect(gx + i * segW + 1, cy + 1, segW - 2, gh - 2, 3); ctx.fill();
+  }
+
+  // 중앙 마커
+  ctx.strokeStyle = '#888'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(cx, cy - 2); ctx.lineTo(cx, cy + gh + 2); ctx.stroke();
+
+  // 라벨
+  ctx.fillStyle = '#888'; ctx.font = `bold 10px sans-serif`; ctx.textAlign = 'center';
+  ctx.fillText('날씬', gx + gw * 0.12, cy - 7);
+  ctx.fillText('체형', cx, cy - 7);
+  ctx.fillText('뚱뚱', gx + gw * 0.88, cy - 7);
+  ctx.restore();
+}
+
+/* ═══════════════════════════════════════════
+   ▌ 메인 렌더
+═══════════════════════════════════════════ */
+function render() {
+  ctx.clearRect(0, 0, CW, CH);
+
+  // 배경
+  const grad = ctx.createLinearGradient(0,0,0,CH);
+  grad.addColorStop(0,'#fff8f0'); grad.addColorStop(1,'#ffecd2');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,CW,CH);
+
+  if (!GS.running && !GS.over) return;
+
+  // 얼굴
+  const faceInfo = drawFace(ctx, CX, CY, FACE_R, GS.fatLevel, GS.faceExpr, GS.mouthOpen);
+  const mouthHitX = faceInfo.mouthX;
+  const mouthHitY = faceInfo.mouthY;
+  const mouthHitR = faceInfo.mouthR;
+
+  // HUD
+  if (!GS.over) {
+    const hudTop = CY - FACE_R * 1.15;
+    drawHUD(ctx, CX, hudTop, GS.stage, GS.eatCount, GS.timeLeft, GS.fatLevel);
+  }
+
+  // 음식 그리기
+  GS.foods.forEach((f, i) => {
+    if (f.eaten) return;
+    const isDragging = GS.drag && GS.drag.idx === i;
+    const fx = isDragging ? GS.drag.cx : f.x;
+    const fy = isDragging ? GS.drag.cy : f.y;
+
+    if (isDragging) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 6;
+    }
+
+    if (f.type === 'poison') {
+      // 캔버스 드로잉 독 음식
+      ctx.save();
+      // 이름 라벨
+      ctx.fillStyle = 'rgba(50,50,50,0.75)';
+      ctx.font = `bold ${Math.round(f.size*0.28)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(f.name, fx, fy + f.size * 0.82);
+      ctx.restore();
+      drawPoison(ctx, f, fx, fy, f.size);
+    } else {
+      ctx.font = `${f.size}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(f.e, fx, fy);
+      // 이름 라벨
+      ctx.fillStyle = 'rgba(80,80,80,0.7)';
+      ctx.font = `${Math.round(f.size * 0.28)}px sans-serif`;
+      ctx.fillText(f.name, fx, fy + f.size * 0.62);
+    }
+
+    if (isDragging) ctx.restore();
+  });
+
+  // 입 판정 원 (드래그 중일 때만 힌트)
+  if (GS.drag && !GS.over) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,100,100,0.35)';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.arc(mouthHitX, mouthHitY, mouthHitR * 1.4, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/* ═══════════════════════════════════════════
+   ▌ 게임 루프
+═══════════════════════════════════════════ */
+let lastTime = 0;
+function gameLoop(ts) {
+  const dt = Math.min((ts - lastTime) / 1000, 0.1);
+  lastTime = ts;
+
+  if (GS.running) {
+    // 표정 타이머
+    if (GS.exprTimer > 0) {
+      GS.exprTimer -= dt;
+      if (GS.exprTimer <= 0 && GS.faceExpr !== 'dead') GS.faceExpr = 'normal';
+    }
+    // 입 애니
+    if (GS.chewTimer > 0) {
+      GS.chewTimer -= dt;
+      GS.mouthOpen = Math.sin(GS.chewTimer * Math.PI * 3) * Math.max(0, GS.chewTimer / 0.6);
+    } else {
+      GS.mouthOpen = 0;
+    }
+  }
+
+  render();
+  GS.animId = requestAnimationFrame(gameLoop);
+}
+
+/* ═══════════════════════════════════════════
+   ▌ 타이머 (정밀)
+═══════════════════════════════════════════ */
+let stageStartReal = 0;
+function startStageTimer() {
+  stageStartReal = performance.now();
+  GS.timeLeft = CFG.STAGE_TIME;
+  if (GS.timerInterval) clearInterval(GS.timerInterval);
+  GS.timerInterval = setInterval(() => {
+    if (!GS.running) return;
+    const elapsed = (performance.now() - stageStartReal) / 1000;
+    GS.timeLeft = Math.max(0, CFG.STAGE_TIME - elapsed);
+    if (GS.timeLeft <= 0) {
+      clearInterval(GS.timerInterval);
+      onTimeUp();
+    }
+  }, 50);
+}
+
+function onTimeUp() {
+  if (GS.eatCount === 0) {
+    gameOver('hungry');
+  } else if (GS.eatCount < CFG.GOAL_COUNT) {
+    gameOver('notEnough');
+  }
+  // 도달하면 clearStage에서 처리
+}
+
+/* ═══════════════════════════════════════════
+   ▌ 드래그 & 드롭
+═══════════════════════════════════════════ */
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return { x: src.clientX - r.left, y: src.clientY - r.top };
+}
+
+function hitFood(x, y) {
+  for (let i = GS.foods.length - 1; i >= 0; i--) {
+    const f = GS.foods[i];
+    if (f.eaten) continue;
+    const dx = x - f.x, dy = y - f.y;
+    if (Math.sqrt(dx*dx+dy*dy) < f.size * 0.68) return i;
+  }
+  return -1;
+}
+
+function onDragStart(e) {
+  if (!GS.running || GS.over) return;
+  e.preventDefault();
+  const p = getPos(e);
+  const idx = hitFood(p.x, p.y);
+  if (idx < 0) return;
+  const f = GS.foods[idx];
+  GS.drag = { idx, offX: p.x - f.x, offY: p.y - f.y, cx: f.x, cy: f.y };
+}
+
+function onDragMove(e) {
+  if (!GS.drag) return;
+  e.preventDefault();
+  const p = getPos(e);
+  GS.drag.cx = p.x - GS.drag.offX;
+  GS.drag.cy = p.y - GS.drag.offY;
+}
+
+function onDragEnd(e) {
+  if (!GS.drag) return;
+  e.preventDefault();
+  const f = GS.foods[GS.drag.idx];
+  // 입 판정
+  const fat = GS.fatLevel;
+  const faceH = FACE_R * (1 + Math.max(CFG.FAT_MIN, Math.min(CFG.FAT_MAX, fat)) / CFG.FAT_MAX * 0.18);
+  const mouthX = CX;
+  const mouthY = CY + faceH * 0.38;
+  const baseHitR = FACE_R * (0.22 + (GS.fatBonus ? 0.08 : 0));
+  const hitPenalty = (CFG.ENABLE_BODY_LIMITS && fat >= CFG.FAT_MAX) ? 0.6 : 1.0;
+  const hitR = baseHitR * hitPenalty;
+  const dx = GS.drag.cx - mouthX;
+  const dy = GS.drag.cy - mouthY;
+
+  if (Math.sqrt(dx*dx+dy*dy) < hitR) {
+    eatFood(GS.drag.idx);
+  } else {
+    // 원위치
+    f.x = f.baseX; f.y = f.baseY;
+  }
+  GS.drag = null;
+}
+
+canvas.addEventListener('mousedown',  onDragStart, { passive: false });
+canvas.addEventListener('mousemove',  onDragMove,  { passive: false });
+canvas.addEventListener('mouseup',    onDragEnd,   { passive: false });
+canvas.addEventListener('touchstart', onDragStart, { passive: false });
+canvas.addEventListener('touchmove',  onDragMove,  { passive: false });
+canvas.addEventListener('touchend',   onDragEnd,   { passive: false });
+
+/* ═══════════════════════════════════════════
+   ▌ 먹기 처리
+═══════════════════════════════════════════ */
+function eatFood(idx) {
+  const f = GS.foods[idx];
+  f.eaten = true;
+  GS.chewTimer = 0.7;
+  GS.exprTimer = 1.2;
+
+  if (f.type === 'poison') {
+    GS.faceExpr = 'dead';
+    playSFX('poison');
+    speak('앗!! 독이다. 나 죽네!!');
+    gameOver('poison');
+    return;
+  }
+
+  GS.eatCount++;
+
+  // 체형 변화
+  const isSpicy = f.type === 'spicy';
+  const isJunk  = f.type === 'junk' || (isSpicy && CFG.SPICY_IS_JUNK);
+  const isVeg   = f.type === 'veggie';
+  if (isJunk)  GS.fatLevel = Math.min(CFG.FAT_MAX, GS.fatLevel + 1);
+  if (isVeg)   GS.fatLevel = Math.max(CFG.FAT_MIN, GS.fatLevel - 1);
+
+  // fatLevel 한계 처리
+  GS.fatBonus = (CFG.ENABLE_BODY_LIMITS && GS.fatLevel <= CFG.FAT_MIN);
+  if (CFG.ENABLE_BODY_LIMITS && GS.fatLevel >= CFG.FAT_MAX) {
+    // 패널티: 입 판정 반경 감소는 onDragEnd에서 처리
+  }
+
+  // 표정 + TTS + SFX
+  if (f.type === 'poison') return;
+  if (isSpicy) {
+    GS.faceExpr = 'spicy';
+    playSFX('spicy');
+    speak('앗 매워!');
+  } else if (isVeg) {
+    GS.faceExpr = 'veggie';
+    playSFX('veggie');
+    speak('우와~ 내 몸이 건강해 져!!');
+  } else {
+    GS.faceExpr = 'happy';
+    playSFX('eat');
+    speak('우와 맛있어. 야미야미!!');
+  }
+
+  // 클리어 체크
+  if (GS.eatCount >= CFG.GOAL_COUNT) {
+    clearInterval(GS.timerInterval);
+    setTimeout(() => stageCleared(), 400);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   ▌ 스테이지 클리어 / 게임오버
+═══════════════════════════════════════════ */
+function stageCleared() {
+  GS.running = false;
+  playSFX('clear');
+
+  let title = `스테이지 ${GS.stage} 클리어!`;
+  let emoji = '🎉';
+  let sub   = `잘 먹었어요! 다음 스테이지로 가볼까요?`;
+
+  if (CFG.ENABLE_BODY_LIMITS && GS.fatLevel <= CFG.FAT_MIN) {
+    title = '완전 건강해!! 🥗';
+    emoji = '🌟';
+    sub   = '야채를 많이 먹어서 몸이 날씬해졌어요! 입 판정 넓어짐 보너스!';
+    speak('완전 건강해!!');
+  } else if (CFG.ENABLE_BODY_LIMITS && GS.fatLevel >= CFG.FAT_MAX) {
+    emoji = '😅';
+    sub   = '너무 많이 먹었어요... 입이 작아지는 패널티 받는 중!';
+    speak('너무 살쪘어!!');
+  }
+
+  showOverlay(emoji, title, sub, '다음 스테이지', false);
+}
+
+function gameOver(reason) {
+  GS.running = false;
+  GS.over    = true;
+  clearInterval(GS.timerInterval);
+  playSFX('fail');
+
+  let emoji = '😢', title = '게임 오버', sub = '';
+  if (reason === 'hungry') {
+    emoji = '😵'; title = '너무 배고파~~'; sub = '20초 동안 아무것도 못 먹었어요!';
+    speak('너무 배고파~~');
+  } else if (reason === 'poison') {
+    emoji = '☠️'; title = '앗!! 독이다. 나 죽네!!'; sub = '독이 든 음식을 먹고 말았어요...';
+  } else if (reason === 'notEnough') {
+    emoji = '😥'; title = '시간 초과!'; sub = `${GS.eatCount}개밖에 못 먹었어요. 3개를 먹어야 해요!`;
+    speak('시간이 초과됐어요');
+  }
+
+  showOverlay(emoji, title, sub, '다시 시작', true);
+}
+
+function showOverlay(emoji, title, sub, btnText, isRestart) {
+  document.getElementById('ovEmoji').textContent  = emoji;
+  document.getElementById('ovTitle').textContent  = title;
+  document.getElementById('ovSub').textContent    = sub;
+  document.getElementById('ovBtn').textContent    = btnText;
+  document.getElementById('ovBtn').dataset.action = isRestart ? 'restart' : 'next';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function overlayAction() {
+  const action = document.getElementById('ovBtn').dataset.action;
+  document.getElementById('overlay').classList.remove('show');
+  if (action === 'restart') {
+    // fatLevel 리셋
+    const savedFat = 0;
+    initGS(); GS.fatLevel = savedFat;
+    startStage(1);
+  } else {
+    startStage(GS.stage + 1);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   ▌ 스테이지 시작 / 게임 시작
+═══════════════════════════════════════════ */
+function startStage(stageNum) {
+  const prevFat = GS.fatLevel;
+  const prevStage = stageNum;
+  initGS();
+  GS.stage    = prevStage;
+  GS.fatLevel = prevFat; // 누적 유지
+  GS.fatBonus = (CFG.ENABLE_BODY_LIMITS && GS.fatLevel <= CFG.FAT_MIN);
+  GS.running  = true;
+  GS.over     = false;
+
+  resizeCanvas();
+  buildFoods();
+  startStageTimer();
+}
+
+function startGame() {
+  document.getElementById('titleScreen').classList.remove('active');
+  document.getElementById('gameScreen').classList.add('active');
+  initGS();
+  resizeCanvas();
+  startStage(1);
+  lastTime = performance.now();
+  GS.animId = requestAnimationFrame(gameLoop);
+}
+
+/* ═══════════════════════════════════════════
+   ▌ 리사이즈 대응
+═══════════════════════════════════════════ */
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  if (GS.running) buildFoods(); // 위치 재계산
+});
+
+/* ── 초기화 ── */
+initGS();
+</script>
+</body>
+</html>
