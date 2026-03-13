@@ -1,0 +1,3612 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🐰 리하의 토끼 키우기</title>
+<style>
+  /* ===== RESET & BASE ===== */
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  
+  :root {
+    --pink: #FFB7C5;
+    --pink-deep: #FF8FAB;
+    --pink-light: #FFE4EC;
+    --purple: #C8A8E9;
+    --purple-light: #EDE0FA;
+    --yellow: #FFE066;
+    --green: #B5EAD7;
+    --blue: #AED9E0;
+    --brown: #C4956A;
+    --white: #FFFBFE;
+    --bg: #FFF0F5;
+  }
+
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+    background: var(--bg);
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  /* ===== SCREEN MANAGER ===== */
+  .screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+  .screen.active { display: flex; }
+
+  /* ===== TITLE SCREEN ===== */
+  #titleScreen {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #FFE4EC 0%, #EDE0FA 50%, #D4F1F4 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .title-deco {
+    position: absolute;
+    font-size: 2rem;
+    animation: floatDeco 3s ease-in-out infinite;
+    opacity: 0.5;
+  }
+  @keyframes floatDeco {
+    0%,100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-15px) rotate(5deg); }
+  }
+  .title-logo {
+    font-size: clamp(2.2rem, 8vw, 3.5rem);
+    font-weight: 900;
+    color: #c44569;
+    text-shadow: 3px 3px 0 #FFB7C5, 5px 5px 0 rgba(196,69,105,0.15);
+    letter-spacing: -1px;
+    text-align: center;
+    margin-bottom: 0.3rem;
+  }
+  .title-sub {
+    font-size: clamp(0.9rem, 3vw, 1.1rem);
+    color: #b5639e;
+    margin-bottom: 1.8rem;
+    letter-spacing: 1px;
+  }
+  .title-bunny-wrap {
+    position: relative;
+    margin-bottom: 1.5rem;
+  }
+  .start-btn {
+    background: linear-gradient(135deg, #FF8FAB, #c44569);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 14px 50px;
+    font-size: clamp(1rem, 4vw, 1.2rem);
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(196,69,105,0.35);
+    animation: pulse 2s ease-in-out infinite;
+    letter-spacing: 2px;
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); box-shadow: 0 6px 20px rgba(196,69,105,0.35); }
+    50% { transform: scale(1.06); box-shadow: 0 10px 30px rgba(196,69,105,0.5); }
+  }
+  .made-by { font-size: 0.75rem; color: #c49dc4; margin-top: 1.2rem; }
+
+  /* ===== SETUP CARD (이름/털색 선택) ===== */
+  .setup-card {
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(14px);
+    border: 2px solid rgba(255,183,197,0.55);
+    border-radius: 22px;
+    padding: 16px 20px 18px;
+    width: min(320px, 88vw);
+    box-shadow: 0 8px 32px rgba(196,69,105,0.12);
+    margin-bottom: 14px;
+  }
+  .setup-section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #b5639e;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  /* 이름 입력 */
+  .name-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #FFF0F5;
+    border: 2px solid #FFB7C5;
+    border-radius: 14px;
+    padding: 6px 12px;
+    margin-bottom: 14px;
+    transition: border-color 0.2s;
+  }
+  .name-input-row:focus-within {
+    border-color: #c44569;
+    box-shadow: 0 0 0 3px rgba(196,69,105,0.12);
+  }
+  .name-emoji { font-size: 1.3rem; }
+  .name-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #c44569;
+    outline: none;
+    font-family: inherit;
+    min-width: 0;
+  }
+  .name-input::placeholder { color: #dba8bc; font-weight: 400; }
+  .name-clear-btn {
+    background: none;
+    border: none;
+    color: #dba8bc;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+  }
+  /* 털 색 팔레트 */
+  .fur-palette {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .fur-swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    border-radius: 14px;
+    padding: 6px 4px 5px;
+    border: 2.5px solid transparent;
+    transition: all 0.2s;
+    background: rgba(255,255,255,0.6);
+  }
+  .fur-swatch:active { transform: scale(0.92); }
+  .fur-swatch.selected {
+    border-color: #c44569;
+    background: white;
+    box-shadow: 0 3px 10px rgba(196,69,105,0.22);
+    transform: scale(1.06);
+  }
+  .fur-circle {
+    width: clamp(28px,7vw,36px);
+    height: clamp(28px,7vw,36px);
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.08);
+    position: relative;
+    overflow: hidden;
+  }
+  /* 털 색 안에 귀 모양 미니 토끼 */
+  .fur-circle svg { width: 100%; height: 100%; }
+  .fur-name {
+    font-size: 0.52rem;
+    font-weight: 600;
+    color: #8a6a8a;
+    white-space: nowrap;
+    text-align: center;
+  }
+  /* preview bunny on title - fur색 반영 */
+  #titleBunnyFur { transition: fill 0.4s; }
+  #titleBunnyFur2 { transition: fill 0.4s; }
+
+  /* ===== MAIN GAME SCREEN ===== */
+  #gameScreen {
+    flex-direction: column;
+    background: linear-gradient(180deg, #B8E8FF 0%, #E0F4FF 35%, #F5FFF0 70%, #E8F5E9 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Top bar */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px 4px;
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(10px);
+    border-bottom: 1.5px solid rgba(255,183,197,0.4);
+    z-index: 100;
+    flex-shrink: 0;
+    gap: 6px;
+  }
+  .top-left { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+  .rabbit-name-bar {
+    font-size: clamp(0.85rem, 3vw, 1rem);
+    font-weight: 700;
+    color: #c44569;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .growth-badge {
+    background: linear-gradient(135deg, #FF8FAB, #c44569);
+    color: white;
+    font-size: 0.6rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .stat-bars {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.62rem;
+    color: #7a5c7a;
+    flex: 1;
+    min-width: 70px;
+  }
+  .stat-icon { font-size: 0.75rem; flex-shrink: 0; }
+  .stat-bar-bg {
+    flex: 1;
+    height: 7px;
+    background: rgba(0,0,0,0.08);
+    border-radius: 5px;
+    overflow: hidden;
+    min-width: 35px;
+  }
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.5s ease, background-color 0.5s;
+  }
+  .stat-bar-fill.hunger { background: linear-gradient(90deg, #FF6B6B, #FF8E53); }
+  .stat-bar-fill.clean  { background: linear-gradient(90deg, #56CCF2, #2F80ED); }
+  .stat-bar-fill.happy  { background: linear-gradient(90deg, #F7971E, #FFD200); }
+  .stat-bar-fill.growth { background: linear-gradient(90deg, #56ab2f, #a8e063); }
+
+  .top-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+  }
+  .timer-display {
+    font-size: 0.7rem;
+    color: #8a6a8a;
+    background: rgba(255,255,255,0.7);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .music-btn {
+    background: rgba(255,255,255,0.7);
+    border: 1.5px solid var(--pink);
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Room / Scene */
+  .room-scene {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  /* Floor */
+  .room-floor {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 30%;
+    background: linear-gradient(180deg, #F5E6D3 0%, #E8D5B7 100%);
+    border-top: 3px solid #D4B896;
+    border-radius: 0;
+  }
+  .floor-pattern {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    opacity: 0.15;
+    background-image: repeating-linear-gradient(
+      90deg, transparent, transparent 40px, rgba(0,0,0,0.2) 40px, rgba(0,0,0,0.2) 42px
+    ), repeating-linear-gradient(
+      0deg, transparent, transparent 40px, rgba(0,0,0,0.2) 40px, rgba(0,0,0,0.2) 42px
+    );
+  }
+
+  /* Wall deco */
+  .wall-window {
+    position: absolute;
+    top: 12%;
+    left: 10%;
+    width: clamp(60px, 15vw, 90px);
+    height: clamp(70px, 18vw, 110px);
+    background: linear-gradient(135deg, #AED9E0 0%, #D4F1F4 50%, #B8E8FF 100%);
+    border: 3px solid #8fb8c0;
+    border-radius: 12px 12px 4px 4px;
+    overflow: hidden;
+  }
+  .window-cross {
+    position: absolute;
+    top: 0; left: 50%; width: 3px; height: 100%;
+    background: rgba(143,184,192,0.6);
+    transform: translateX(-50%);
+  }
+  .window-cross-h {
+    position: absolute;
+    top: 50%; left: 0; height: 3px; width: 100%;
+    background: rgba(143,184,192,0.6);
+    transform: translateY(-50%);
+  }
+  .window-cloud {
+    position: absolute;
+    background: white;
+    border-radius: 50px;
+    opacity: 0.8;
+    animation: cloudFloat 8s ease-in-out infinite;
+  }
+
+  @keyframes cloudFloat {
+    0%,100% { transform: translateX(0); }
+    50% { transform: translateX(8px); }
+  }
+
+  /* Furniture */
+  .furniture { position: absolute; }
+  .shelf       { right: 8%;  bottom: 28%; width: clamp(60px,15vw,85px); }
+  .plant-pot   { left: 5%;   bottom: 28%; }
+  .room-deco-carpet { position:absolute; bottom:28%; left:50%; transform:translateX(-50%); width:clamp(100px,28vw,170px); z-index:1; }
+  .room-deco-bed    { position:absolute; right:2%;  bottom:28%; width:clamp(55px,14vw,80px); z-index:2; }
+  .room-deco-toy    { position:absolute; left:22%;  bottom:28%; z-index:2; }
+  .room-deco-poster { position:absolute; top:8%;    right:12%; }
+  .room-deco-clock  { position:absolute; top:10%;   left:38%; }
+  .room-deco-carrot-box { position:absolute; left:16%; bottom:28%; z-index:2; }
+  /* 추가 소품 */
+  .room-deco-mirror     { position:absolute; top:8%;   right:28%; }
+  .room-deco-watering   { position:absolute; left:2%;  bottom:30%; z-index:2; }
+  .room-deco-bookstack  { position:absolute; left:42%; bottom:28%; z-index:2; }
+  .room-deco-trophy     { position:absolute; top:12%;  left:18%; }
+  .room-deco-banner     { position:absolute; top:5%;   left:50%; transform:translateX(-50%); }
+  .room-deco-banner svg { animation: bannerSway 4s ease-in-out infinite; transform-origin: top center; }
+  .room-deco-mirror svg { animation: mirrorShine 5s ease-in-out infinite; }
+  @keyframes bannerSway {
+    0%,100% { transform: rotate(-1.5deg); }
+    50%     { transform: rotate(1.5deg); }
+  }
+  @keyframes mirrorShine {
+    0%,100% { filter: brightness(1); }
+    50%     { filter: brightness(1.15) drop-shadow(0 0 4px rgba(255,220,150,0.5)); }
+  }
+  /* 벽지 패턴 */
+  #gameScreen::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    background-image:
+      radial-gradient(circle, rgba(255,183,197,0.20) 2px, transparent 2px),
+      radial-gradient(circle, rgba(200,168,233,0.16) 2px, transparent 2px),
+      radial-gradient(circle, rgba(255,224,130,0.12) 1.5px, transparent 1.5px);
+    background-size: 30px 30px, 45px 45px, 60px 60px;
+    background-position: 0 0, 15px 15px, 30px 30px;
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* Bunny Stage - 이동 애니메이션은 JS로 left 제어 */
+  .bunny-stage {
+    position: absolute;
+    bottom: 28%;
+    left: 50%;
+    transform: translateX(-50%) scaleX(1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 10;
+    cursor: pointer;
+    transition: bottom 1.2s cubic-bezier(0.34,1.2,0.64,1),
+                left 2.5s cubic-bezier(0.45,0,0.55,1);
+  }
+
+  /* ===== 목욕탕 배경 오버레이 ===== */
+  #bathBg {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+  }
+  #bathBg.show { display: block; }
+
+  /* 공주 변신 오버레이 */
+  #princessOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(160deg,#FFE4EC,#EDE0FA,#FFF0F5);
+    z-index: 900;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 30px 20px;
+  }
+  #princessOverlay.show { display: flex; }
+  .princess-title {
+    font-size: clamp(1.6rem,7vw,2.4rem);
+    font-weight: 900;
+    color: #c44569;
+    text-shadow: 2px 2px 0 #FFB7C5;
+    margin-bottom: 0.4rem;
+    animation: princessPop 0.7s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .princess-sub {
+    font-size: clamp(0.85rem,3vw,1rem);
+    color: #9b59b6;
+    margin-bottom: 1.4rem;
+    line-height: 1.6;
+  }
+  @keyframes princessPop {
+    0%{transform:scale(0.3);opacity:0}
+    100%{transform:scale(1);opacity:1}
+  }
+  .princess-bunny-wrap { position: relative; margin-bottom: 1.2rem; }
+  .princess-crown-sparkle {
+    position: absolute;
+    font-size: 1.4rem;
+    animation: floatDeco 2s ease-in-out infinite;
+  }
+  .princess-farewell-btn {
+    background: linear-gradient(135deg,#FFD700,#FFA500);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 13px 40px;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(255,165,0,0.4);
+    letter-spacing: 1px;
+  }
+
+  /* Main Bunny SVG container */
+  #mainBunny {
+    position: relative;
+    transition: transform 0.3s;
+  }
+  #mainBunny:hover { transform: scale(1.05); }
+  #mainBunny:active { transform: scale(0.95); }
+  #bunnyContainer {
+    overflow: visible;
+    transition: transform 1.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  /* Effects overlay */
+  .effect-container {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 50;
+    overflow: hidden;
+  }
+
+  /* Smell effect */
+  .smell-particle {
+    position: absolute;
+    font-size: 1rem;
+    animation: smellRise 3s ease-out infinite;
+    opacity: 0;
+  }
+  @keyframes smellRise {
+    0% { opacity: 0.8; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-60px) scale(0.5) rotate(20deg); }
+  }
+
+  /* Fly */
+  .fly {
+    position: absolute;
+    font-size: 0.7rem;
+    animation: flyAround 2s linear infinite;
+  }
+  @keyframes flyAround {
+    0% { transform: translate(0,0); }
+    25% { transform: translate(15px, -10px); }
+    50% { transform: translate(25px, 5px); }
+    75% { transform: translate(10px, 15px); }
+    100% { transform: translate(0,0); }
+  }
+
+  /* Sparkle */
+  .sparkle {
+    position: absolute;
+    font-size: 0.8rem;
+    animation: sparkle 2s ease-in-out infinite;
+    opacity: 0;
+  }
+  @keyframes sparkle {
+    0%,100% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+
+  /* Heart float */
+  .heart-float {
+    position: absolute;
+    font-size: 1.2rem;
+    animation: heartUp 1.5s ease-out forwards;
+    pointer-events: none;
+    z-index: 200;
+  }
+  @keyframes heartUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
+  }
+
+  /* Action feedback */
+  .action-feedback {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.95);
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #c44569;
+    box-shadow: 0 4px 15px rgba(196,69,105,0.3);
+    z-index: 300;
+    pointer-events: none;
+    animation: feedbackPop 2s ease-out forwards;
+    white-space: nowrap;
+  }
+  @keyframes feedbackPop {
+    0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.8); }
+    15% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.05); }
+    70% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-15px) scale(0.9); }
+  }
+
+  /* ===== ACTION BUTTONS ===== */
+  .action-area {
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    border-top: 2px solid rgba(255,183,197,0.5);
+    padding: 10px 12px 12px;
+    z-index: 100;
+  }
+  .action-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .action-tabs::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    background: transparent;
+    border: 2px solid var(--pink);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--pink-deep);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: var(--pink-deep);
+    color: white;
+    border-color: var(--pink-deep);
+    box-shadow: 0 3px 10px rgba(255,143,171,0.4);
+  }
+  .tab-btn:hover:not(.active) { background: var(--pink-light); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .action-btns {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: white;
+    border: 2.5px solid transparent;
+    border-radius: 16px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    min-width: 64px;
+    flex: 1;
+    max-width: 85px;
+  }
+  .action-btn:active { transform: scale(0.93); }
+  .action-btn .btn-icon { font-size: clamp(1.3rem, 5vw, 1.6rem); }
+  .action-btn .btn-label { font-size: 0.62rem; font-weight: 600; color: #7a5c7a; white-space: nowrap; }
+
+  .action-btn.care-btn { border-color: #FFB7C5; }
+  .action-btn.care-btn:hover { background: #FFF0F5; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255,143,171,0.25); }
+  .action-btn.play-btn { border-color: #C8A8E9; }
+  .action-btn.play-btn:hover { background: #F5EEFF; transform: translateY(-2px); }
+  .action-btn.outfit-btn { border-color: #AED9E0; }
+  .action-btn.outfit-btn:hover { background: #EEF8FF; transform: translateY(-2px); }
+
+  /* ===== OUTFIT PANEL ===== */
+  .outfit-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7px;
+    max-height: 120px;
+    overflow-y: auto;
+    padding: 2px;
+  }
+  .outfit-item {
+    background: white;
+    border: 2.5px solid #e0d0f0;
+    border-radius: 12px;
+    padding: 6px 4px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 1.3rem;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .outfit-item.equipped { border-color: #c44569; background: #FFF0F5; }
+  .outfit-item:active { transform: scale(0.92); }
+  .outfit-label { font-size: 0.52rem; color: #a07090; font-weight: 600; white-space: nowrap; }
+
+  /* ===== END SCREEN ===== */
+  #endScreen {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #FFE4EC 0%, #EDE0FA 60%, #D4F1F4 100%);
+    text-align: center;
+    padding: 30px 20px;
+    overflow-y: auto;
+  }
+  .end-title {
+    font-size: clamp(1.5rem, 6vw, 2.2rem);
+    font-weight: 900;
+    color: #c44569;
+    margin-bottom: 0.5rem;
+    text-shadow: 2px 2px 0 rgba(196,69,105,0.15);
+  }
+  .end-msg { font-size: clamp(0.85rem, 3vw, 1rem); color: #7a5c7a; max-width: 320px; line-height: 1.6; margin-bottom: 1.2rem; }
+  .score-circle {
+    width: clamp(100px, 28vw, 140px);
+    height: clamp(100px, 28vw, 140px);
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF8FAB, #c44569);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 8px 30px rgba(196,69,105,0.4);
+    animation: scorePop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes scorePop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .score-num {
+    font-size: clamp(2rem, 8vw, 3rem);
+    font-weight: 900;
+    color: white;
+    line-height: 1;
+  }
+  .score-label { font-size: 0.7rem; color: rgba(255,255,255,0.85); font-weight: 600; }
+  .score-grade { font-size: clamp(1rem, 4vw, 1.3rem); margin-bottom: 0.5rem; }
+  .replay-btn {
+    background: linear-gradient(135deg, #C8A8E9, #9B59B6);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 40px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(155,89,182,0.35);
+    margin-top: 0.5rem;
+    letter-spacing: 1px;
+  }
+  .replay-btn:active { transform: scale(0.97); }
+
+  /* ===== MINI GAME OVERLAY ===== */
+  #miniGameOverlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #miniGameOverlay.show { display: flex; }
+  .mini-game-box {
+    background: white;
+    border-radius: 24px;
+    padding: 24px 20px;
+    width: min(340px, 92vw);
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.7); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .mini-game-title { font-size: 1.1rem; font-weight: 800; color: #c44569; margin-bottom: 6px; }
+  .mini-game-subtitle { font-size: 0.8rem; color: #8a6a8a; margin-bottom: 16px; }
+  .craft-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .craft-item {
+    background: linear-gradient(135deg, #FFF0F5, #EDE0FA);
+    border: 2px solid #e8d0f0;
+    border-radius: 14px;
+    padding: 12px 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1.8rem;
+    position: relative;
+  }
+  .craft-item:active { transform: scale(0.9); }
+  .craft-item.selected { border-color: #c44569; background: #FFE4EC; }
+  .craft-item .craft-name { font-size: 0.65rem; color: #8a6a8a; font-weight: 600; margin-top: 4px; }
+  .close-mini { background: #eee; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 1rem; cursor: pointer; margin-top: 4px; }
+  .close-mini:active { transform: scale(0.95); }
+
+  /* ===== PUZZLE MINI GAME ===== */
+  #puzzleOverlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.65);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #puzzleOverlay.show { display: flex; }
+  .puzzle-box {
+    background: linear-gradient(160deg, #FFF5FB 0%, #F0EEFF 100%);
+    border-radius: 26px;
+    padding: 22px 18px 18px;
+    width: min(340px, 94vw);
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(180,80,140,0.28);
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+  }
+  .puzzle-title  { font-size: 1.1rem; font-weight: 900; color: #c44569; margin-bottom: 4px; }
+  .puzzle-sub    { font-size: 0.78rem; color: #8a6a8a; margin-bottom: 12px; }
+  .puzzle-timer  { font-size: 0.85rem; font-weight: 700; color: #9B59B6; margin-bottom: 10px; }
+  /* 힌트 그림 */
+  .puzzle-hint {
+    background: #FFF0F8;
+    border-radius: 14px;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 2px solid #F8C0D8;
+    display: inline-block;
+  }
+  /* 4×4 그리드 */
+  .puzzle-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .puzzle-piece {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border: 2.5px solid transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .puzzle-piece:active { transform: scale(0.88); }
+  .puzzle-piece.selected {
+    border-color: #c44569;
+    box-shadow: 0 0 0 3px rgba(196,69,105,0.3);
+    transform: scale(1.06);
+  }
+  .puzzle-piece.correct {
+    border-color: #27AE60;
+    background: linear-gradient(135deg, #EAFAF1, #D5F5E3) !important;
+    animation: pieceCorrect 0.4s ease;
+  }
+  .puzzle-piece.wrong {
+    animation: pieceWrong 0.4s ease;
+    border-color: #e74c3c;
+  }
+  @keyframes pieceCorrect {
+    0%   { transform: scale(1);    }
+    40%  { transform: scale(1.18); }
+    100% { transform: scale(1);    }
+  }
+  @keyframes pieceWrong {
+    0%,100% { transform: translateX(0); }
+    25%     { transform: translateX(-6px); }
+    75%     { transform: translateX(6px);  }
+  }
+  .puzzle-progress {
+    font-size: 0.78rem;
+    color: #8a6a8a;
+    margin-bottom: 6px;
+  }
+  .puzzle-progress-bar {
+    height: 8px;
+    background: #EDE0FA;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .puzzle-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #c44569, #9B59B6);
+    border-radius: 6px;
+    transition: width 0.4s ease;
+  }
+  .puzzle-result {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #c44569;
+    padding: 10px;
+    display: none;
+  }
+  .puzzle-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: rgba(196,69,105,0.12);
+    border: none; border-radius: 50%;
+    width: 34px; height: 34px;
+    font-size: 1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .puzzle-close:active { transform: scale(0.9); }
+
+  /* ===== WASH MINI GAME ===== */
+  #washCanvas {
+    border-radius: 16px;
+    touch-action: none;
+    cursor: crosshair;
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* ===== GROWING ANIMATION CLASSES ===== */
+  .bunny-anim-bounce {
+    animation: bunnyBounce 0.4s ease-out;
+  }
+  @keyframes bunnyBounce {
+    0%,100% { transform: translateY(0); }
+    40% { transform: translateY(-18px); }
+  }
+  .bunny-anim-eat {
+    animation: bunnyEat 0.5s ease-out;
+  }
+  @keyframes bunnyEat {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(-8deg) scale(1.05); }
+    75% { transform: rotate(5deg) scale(1.05); }
+    100% { transform: rotate(0deg); }
+  }
+  .bunny-anim-wash {
+    animation: bunnyWash 0.6s ease-out;
+  }
+  @keyframes bunnyWash {
+    0% { filter: none; }
+    50% { filter: hue-rotate(180deg) brightness(1.2); }
+    100% { filter: none; }
+  }
+
+  /* Level up toast */
+  .levelup-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #FF8FAB, #c44569);
+    color: white;
+    padding: 20px 36px;
+    border-radius: 20px;
+    font-size: 1.2rem;
+    font-weight: 800;
+    z-index: 400;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(196,69,105,0.5);
+    animation: levelupAnim 2.5s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes levelupAnim {
+    0% { opacity: 0; transform: translate(-50%,-50%) scale(0.7); }
+    20% { opacity: 1; transform: translate(-50%,-50%) scale(1.1); }
+    80% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%,-60%) scale(0.95); }
+  }
+
+  /* Particle burst */
+  .confetti {
+    position: fixed;
+    pointer-events: none;
+    z-index: 600;
+    font-size: 1.5rem;
+    animation: confettiFall 2s ease-out forwards;
+  }
+  @keyframes confettiFall {
+    0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+    100% { opacity: 0; transform: translateY(80px) rotate(360deg); }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--pink); border-radius: 4px; }
+
+  /* Farewell overlay */
+  #farewellOverlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 800;
+    align-items: center;
+    justify-content: center;
+  }
+  #farewellOverlay.show { display: flex; }
+  .farewell-box {
+    background: linear-gradient(160deg, #fff, #FFE4EC);
+    border-radius: 24px;
+    padding: 30px 24px;
+    width: min(340px, 90vw);
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .farewell-title { font-size: 1.4rem; font-weight: 900; color: #c44569; margin-bottom: 10px; }
+  .farewell-msg { font-size: 0.85rem; color: #7a5c7a; line-height: 1.7; margin-bottom: 18px; }
+  .farewell-btn {
+    background: linear-gradient(135deg, #FF8FAB, #c44569);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 36px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* Status emojis that appear above bunny */
+  /* ===== 상태 말풍선 ===== */
+  .status-bubble {
+    position: absolute;
+    top: -58px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #8a5a8a;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+    white-space: nowrap;
+    animation: bubbleFloat 1.8s ease-in-out infinite;
+    display: none;
+    border: 2.5px solid rgba(255,183,197,0.6);
+    z-index: 30;
+  }
+  .status-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid white;
+  }
+  /* 배고픔 말풍선 - 빨간 테두리 강조 */
+  .status-bubble.hungry {
+    background: linear-gradient(135deg, #FFF0F0, #FFE0E0);
+    border-color: #FF3333;
+    border-width: 3px;
+    color: #CC0000;
+    font-size: 0.95rem;
+    box-shadow: 0 4px 20px rgba(255,50,50,0.3);
+    animation: bubbleShake 0.4s ease-in-out infinite;
+  }
+  .status-bubble.hungry::after { border-top-color: #FFE0E0; }
+  /* 간지럼 말풍선 - 청록 테두리 */
+  .status-bubble.itchy {
+    background: linear-gradient(135deg, #F0FFF8, #E0FFF0);
+    border-color: #22CC88;
+    border-width: 3px;
+    color: #006644;
+    font-size: 0.92rem;
+    box-shadow: 0 4px 20px rgba(34,204,136,0.25);
+    animation: bubbleWiggle 0.5s ease-in-out infinite;
+  }
+  .status-bubble.itchy::after { border-top-color: #E0FFF0; }
+  /* 놀이 부족 말풍선 - 보라 테두리 */
+  .status-bubble.bored {
+    background: linear-gradient(135deg, #F8F0FF, #EEE0FF);
+    border-color: #9B59B6;
+    border-width: 3px;
+    color: #6C3483;
+    font-size: 0.92rem;
+    box-shadow: 0 4px 20px rgba(155,89,182,0.25);
+    animation: bubbleWiggle 0.6s ease-in-out infinite;
+  }
+  .status-bubble.bored::after { border-top-color: #EEE0FF; }
+  @keyframes bubbleFloat {
+    0%,100% { transform: translateX(-50%) translateY(0); }
+    50%      { transform: translateX(-50%) translateY(-6px); }
+  }
+  @keyframes bubbleShake {
+    0%,100% { transform: translateX(-50%) rotate(-2deg) scale(1.02); }
+    50%     { transform: translateX(-50%) rotate(2deg) scale(1.05); }
+  }
+  @keyframes bubbleWiggle {
+    0%,100% { transform: translateX(-50%) translateY(0) rotate(-1deg); }
+    33%     { transform: translateX(-50%) translateY(-4px) rotate(1deg); }
+    66%     { transform: translateX(-50%) translateY(-2px) rotate(-1deg); }
+  }
+  /* 긁기 이펙트 */
+  .scratch-particle {
+    position: absolute;
+    font-size: 0.9rem;
+    pointer-events: none;
+    animation: scratchFloat 1.5s ease-out forwards;
+    z-index: 40;
+  }
+  @keyframes scratchFloat {
+    0%   { opacity: 1; transform: translate(0,0) rotate(0deg); }
+    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) rotate(var(--tr)); }
+  }
+  /* 배고픔 흔들기 */
+  @keyframes hungerShake {
+    0%,100% { transform: translateX(-50%) rotate(0deg); }
+    20%     { transform: translateX(calc(-50% - 8px)) rotate(-4deg); }
+    40%     { transform: translateX(calc(-50% + 8px)) rotate(4deg); }
+    60%     { transform: translateX(calc(-50% - 6px)) rotate(-3deg); }
+    80%     { transform: translateX(calc(-50% + 6px)) rotate(3deg); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== TITLE SCREEN ====== -->
+<div class="screen active" id="titleScreen">
+  <span class="title-deco" style="top:5%;left:8%;animation-delay:0s">🌸</span>
+  <span class="title-deco" style="top:10%;right:10%;animation-delay:0.5s">⭐</span>
+  <span class="title-deco" style="top:70%;left:5%;animation-delay:1s">🌿</span>
+  <span class="title-deco" style="top:75%;right:7%;animation-delay:1.5s">🍀</span>
+  <span class="title-deco" style="bottom:10%;left:20%;animation-delay:0.8s">💕</span>
+  <div class="title-logo">🐰 토끼 키우기</div>
+  <div class="title-sub">리하의 귀여운 토끼 육성 게임</div>
+  <div class="title-bunny-wrap">
+    <svg id="titleBunnySVG" width="140" height="160" viewBox="0 0 160 180" style="overflow:visible">
+      <g id="titleBunny">
+        <ellipse cx="80" cy="130" rx="38" ry="42" id="titleBunnyFur" fill="#F8F0E8"/>
+        <circle cx="80" cy="82" r="34" id="titleBunnyFur2" fill="#F8F0E8"/>
+        <ellipse cx="57" cy="44" rx="12" ry="26" class="titleBunnyFurEl" fill="#F8F0E8"/>
+        <ellipse cx="57" cy="44" rx="7" ry="20" fill="#FFBDCC"/>
+        <ellipse cx="103" cy="44" rx="12" ry="26" class="titleBunnyFurEl" fill="#F8F0E8"/>
+        <ellipse cx="103" cy="44" rx="7" ry="20" fill="#FFBDCC"/>
+        <circle cx="68" cy="80" r="6" fill="#2C1810"/>
+        <circle cx="92" cy="80" r="6" fill="#2C1810"/>
+        <circle cx="70" cy="78" r="2" fill="white"/>
+        <circle cx="94" cy="78" r="2" fill="white"/>
+        <ellipse cx="80" cy="89" rx="3" ry="2" fill="#FF9FB0"/>
+        <path d="M74 92 Q80 97 86 92" stroke="#FF9FB0" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <ellipse cx="62" cy="88" rx="8" ry="5" fill="#FFCCD8" opacity="0.6"/>
+        <ellipse cx="98" cy="88" rx="8" ry="5" fill="#FFCCD8" opacity="0.6"/>
+        <ellipse cx="48" cy="130" rx="11" ry="18" class="titleBunnyFurEl" fill="#F8F0E8" transform="rotate(-15,48,130)"/>
+        <ellipse cx="112" cy="130" rx="11" ry="18" class="titleBunnyFurEl" fill="#F8F0E8" transform="rotate(15,112,130)"/>
+        <ellipse cx="62" cy="168" rx="16" ry="9" class="titleBunnyFurEl" fill="#F8F0E8"/>
+        <ellipse cx="98" cy="168" rx="16" ry="9" class="titleBunnyFurEl" fill="#F8F0E8"/>
+        <circle cx="118" cy="148" r="9" fill="white"/>
+        <ellipse cx="80" cy="135" rx="20" ry="22" id="titleBunnyTummy" fill="#FFEDE8" opacity="0.7"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Setup Card -->
+  <div class="setup-card">
+    <!-- 이름 입력 -->
+    <div class="setup-section-label">🏷️ 토끼 이름을 지어줘요!</div>
+    <div class="name-input-row">
+      <span class="name-emoji">🐰</span>
+      <input class="name-input" id="bunnyNameInput" type="text"
+             maxlength="8" placeholder="이름을 입력하세요"
+             oninput="onNameInput(this.value)" />
+      <button class="name-clear-btn" onclick="clearName()">✕</button>
+    </div>
+    <!-- 털 색 선택 -->
+    <div class="setup-section-label">🎨 털 색을 골라줘요!</div>
+    <div class="fur-palette" id="furPalette"></div>
+  </div>
+
+  <button class="start-btn" onclick="beginGame()">🌟 게임 시작!</button>
+  <div class="made-by">💝 리하를 위해 특별히 만든 게임</div>
+</div>
+
+<!-- ====== GAME SCREEN ====== -->
+<div class="screen" id="gameScreen">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="top-left">
+      <div class="rabbit-name-bar">
+        🐰 <span id="displayBunnyName">뽀뽀</span>
+        <span class="growth-badge" id="growthBadge">아기 토끼</span>
+      </div>
+      <div class="stat-bars">
+        <div class="stat-item">
+          <span class="stat-icon">🥕</span>
+          <div class="stat-bar-bg"><div class="stat-bar-fill hunger" id="hungerBar" style="width:100%"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">🛁</span>
+          <div class="stat-bar-bg"><div class="stat-bar-fill clean" id="cleanBar" style="width:100%"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">💛</span>
+          <div class="stat-bar-bg"><div class="stat-bar-fill happy" id="happyBar" style="width:80%"></div></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">🌱</span>
+          <div class="stat-bar-bg"><div class="stat-bar-fill growth" id="growthBar" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="timer-display" id="timerDisplay">⏰ 10:00</div>
+      <button class="music-btn" id="musicBtn" onclick="toggleMusic()">🎵</button>
+    </div>
+  </div>
+
+  <!-- Room Scene -->
+  <div class="room-scene" id="roomScene">
+    <!-- Floor -->
+    <div class="room-floor"><div class="floor-pattern"></div></div>
+
+    <!-- ===== 창문 ===== -->
+    <div class="wall-window">
+      <div class="window-cross"></div>
+      <div class="window-cross-h"></div>
+      <div class="window-cloud" style="width:30px;height:12px;top:15%;left:5%;animation-delay:0s"></div>
+      <div class="window-cloud" style="width:20px;height:9px;top:35%;left:40%;animation-delay:2s"></div>
+      <div class="window-cloud" style="width:25px;height:10px;top:55%;left:15%;animation-delay:4s"></div>
+    </div>
+
+    <!-- ===== 벽 포스터 (당근 그림) ===== -->
+    <div class="room-deco-poster">
+      <svg width="48" height="58" viewBox="0 0 48 58">
+        <rect width="48" height="58" rx="4" fill="#FFF8E8" stroke="#DDB870" stroke-width="2"/>
+        <rect x="3" y="3" width="42" height="52" rx="3" fill="#FFFBF0" stroke="#E8C870" stroke-width="1"/>
+        <!-- 당근 그림 -->
+        <path d="M24,10 Q28,22 24,40 Q20,22 24,10 Z" fill="#FF8C42"/>
+        <path d="M20,10 Q16,22 20,38 Q22,22 20,10 Z" fill="#FF7030" opacity="0.6"/>
+        <!-- 잎사귀 -->
+        <path d="M24,10 Q18,3 14,7" stroke="#5CAD60" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M24,10 Q24,2 22,4" stroke="#5CAD60" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M24,10 Q30,3 34,7" stroke="#5CAD60" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <!-- 액자 아래 텍스트 -->
+        <text x="24" y="52" font-size="5.5" text-anchor="middle" fill="#C4956A" font-weight="bold">🐰 뽀뽀의 방</text>
+      </svg>
+    </div>
+
+    <!-- ===== 벽시계 ===== -->
+    <div class="room-deco-clock">
+      <svg width="38" height="38" viewBox="0 0 38 38">
+        <circle cx="19" cy="19" r="17" fill="#FFF8E8" stroke="#DDB870" stroke-width="2.5"/>
+        <circle cx="19" cy="19" r="14" fill="white" stroke="#F0D090" stroke-width="1"/>
+        <!-- 토끼 귀 장식 -->
+        <ellipse cx="14" cy="4"  rx="3.5" ry="5.5" fill="#F8F0E8" stroke="#DDB870" stroke-width="1.5"/>
+        <ellipse cx="14" cy="4"  rx="2"   ry="3.5" fill="#FFBDCC"/>
+        <ellipse cx="24" cy="4"  rx="3.5" ry="5.5" fill="#F8F0E8" stroke="#DDB870" stroke-width="1.5"/>
+        <ellipse cx="24" cy="4"  rx="2"   ry="3.5" fill="#FFBDCC"/>
+        <!-- 시침/분침 (JS로 실시간 회전 가능하지만 고정으로) -->
+        <line x1="19" y1="19" x2="19" y2="10" stroke="#8B6030" stroke-width="2" stroke-linecap="round"/>
+        <line x1="19" y1="19" x2="26" y2="17" stroke="#C44569" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="19" cy="19" r="2" fill="#C44569"/>
+        <!-- 숫자 -->
+        <text x="19" y="8.5"  font-size="3.5" text-anchor="middle" fill="#B89060">12</text>
+        <text x="30" y="20.5" font-size="3.5" text-anchor="middle" fill="#B89060">3</text>
+        <text x="19" y="31"   font-size="3.5" text-anchor="middle" fill="#B89060">6</text>
+        <text x="8"  y="20.5" font-size="3.5" text-anchor="middle" fill="#B89060">9</text>
+      </svg>
+    </div>
+
+    <!-- ===== 선반 (당근·토끼 소품) ===== -->
+    <svg class="furniture shelf" viewBox="0 0 90 110">
+      <!-- 선반 판 -->
+      <rect x="2" y="32" width="86" height="9" rx="3" fill="#C4956A"/>
+      <rect x="2" y="32" width="86" height="4" rx="3" fill="#D4A87A"/>
+      <rect x="2" y="76" width="86" height="9" rx="3" fill="#C4956A"/>
+      <rect x="2" y="76" width="86" height="4" rx="3" fill="#D4A87A"/>
+      <!-- 선반 받침대 -->
+      <rect x="8"  y="41" width="6" height="35" rx="2" fill="#B8845A"/>
+      <rect x="76" y="41" width="6" height="35" rx="2" fill="#B8845A"/>
+      <!-- 1단 소품: 당근인형·별·화분 -->
+      <text x="8"  y="28" font-size="17">🥕</text>
+      <text x="38" y="27" font-size="15">⭐</text>
+      <text x="62" y="28" font-size="16">🪴</text>
+      <!-- 2단 소품: 토끼인형·하트액자·책 -->
+      <text x="6"  y="72" font-size="16">🐰</text>
+      <text x="36" y="71" font-size="14">🖼️</text>
+      <text x="60" y="72" font-size="15">📚</text>
+    </svg>
+
+    <!-- ===== 화분 (왼쪽) ===== -->
+    <svg class="furniture plant-pot" width="52" height="65" viewBox="0 0 52 65">
+      <rect x="16" y="40" width="20" height="20" rx="4" fill="#B5893A"/>
+      <rect x="14" y="38" width="24" height="5"  rx="3" fill="#C4A55A"/>
+      <!-- 줄기+잎 -->
+      <line x1="26" y1="38" x2="26" y2="20" stroke="#5CAD60" stroke-width="2.5"/>
+      <ellipse cx="18" cy="22" rx="9" ry="6" fill="#6CBF70" transform="rotate(-30,18,22)"/>
+      <ellipse cx="34" cy="18" rx="9" ry="6" fill="#7BC67E" transform="rotate(30,34,18)"/>
+      <circle  cx="26" cy="12" r="9"  fill="#7BC67E"/>
+      <circle  cx="19" cy="8"  r="6"  fill="#5CAD60" opacity="0.85"/>
+      <circle  cx="33" cy="9"  r="7"  fill="#6CBF70" opacity="0.85"/>
+      <!-- 꽃 -->
+      <text x="20" y="14" font-size="9">🌸</text>
+    </svg>
+
+    <!-- ===== 당근 바구니 ===== -->
+    <div class="room-deco-carrot-box">
+      <svg width="40" height="38" viewBox="0 0 40 38">
+        <!-- 바구니 -->
+        <path d="M5,16 Q3,36 20,37 Q37,36 35,16 Z" fill="#C4956A"/>
+        <path d="M5,16 Q3,36 20,37 Q37,36 35,16 Z" fill="none" stroke="#A07840" stroke-width="1.5"/>
+        <!-- 바구니 줄무늬 -->
+        <line x1="12" y1="16" x2="10" y2="36" stroke="#A07840" stroke-width="1" opacity="0.5"/>
+        <line x1="20" y1="16" x2="20" y2="37" stroke="#A07840" stroke-width="1" opacity="0.5"/>
+        <line x1="28" y1="16" x2="30" y2="36" stroke="#A07840" stroke-width="1" opacity="0.5"/>
+        <ellipse cx="20" cy="16" rx="15" ry="5" fill="#D4A870"/>
+        <!-- 당근들 -->
+        <text x="3"  y="18" font-size="13">🥕</text>
+        <text x="16" y="16" font-size="11">🥕</text>
+        <text x="25" y="17" font-size="12">🥕</text>
+        <!-- 손잡이 -->
+        <path d="M8,16 Q5,6 14,5 Q20,4 26,5 Q35,6 32,16" stroke="#B88040" stroke-width="2.5" fill="none"/>
+      </svg>
+    </div>
+
+    <!-- ===== 토끼 침대 (오른쪽) ===== -->
+    <div class="room-deco-bed">
+      <svg width="72" height="55" viewBox="0 0 72 55">
+        <!-- 침대 프레임 -->
+        <rect x="2"  y="30" width="68" height="22" rx="5" fill="#E8C890"/>
+        <rect x="2"  y="30" width="68" height="22" rx="5" fill="none" stroke="#C4A060" stroke-width="1.5"/>
+        <!-- 다리 -->
+        <rect x="5"  y="50" width="6" height="8" rx="2" fill="#C4A060"/>
+        <rect x="61" y="50" width="6" height="8" rx="2" fill="#C4A060"/>
+        <!-- 머리판 -->
+        <rect x="2"  y="14" width="20" height="20" rx="5" fill="#D4A870"/>
+        <rect x="2"  y="14" width="20" height="20" rx="5" fill="none" stroke="#C4A060" stroke-width="1.5"/>
+        <!-- 토끼 조각 장식 -->
+        <ellipse cx="9"  cy="12" rx="3.5" ry="6" fill="#F0E0C0"/>
+        <ellipse cx="9"  cy="12" rx="2"   ry="4" fill="#FFBDCC"/>
+        <ellipse cx="15" cy="12" rx="3.5" ry="6" fill="#F0E0C0"/>
+        <ellipse cx="15" cy="12" rx="2"   ry="4" fill="#FFBDCC"/>
+        <!-- 이불 (분홍) -->
+        <rect x="18" y="28" width="52" height="16" rx="6" fill="#FFB7C5" opacity="0.9"/>
+        <rect x="18" y="28" width="52" height="16" rx="6" fill="none" stroke="#FF8FAB" stroke-width="1"/>
+        <!-- 이불 패턴 하트 -->
+        <text x="28" y="40" font-size="8">💕</text>
+        <text x="44" y="40" font-size="8">💕</text>
+        <!-- 베개 -->
+        <rect x="18" y="28" width="18" height="12" rx="5" fill="white" opacity="0.85"/>
+        <text x="24" y="37" font-size="7">🐰</text>
+      </svg>
+    </div>
+
+    <!-- ===== 토끼 장난감 (공·블록) ===== -->
+    <div class="room-deco-toy">
+      <svg width="42" height="42" viewBox="0 0 42 42">
+        <!-- 공 -->
+        <circle cx="12" cy="30" r="10" fill="#FF8FAB"/>
+        <path d="M4,30 Q12,20 20,30" stroke="white" stroke-width="1.5" fill="none" opacity="0.6"/>
+        <path d="M4,30 Q12,40 20,30" stroke="white" stroke-width="1.5" fill="none" opacity="0.6"/>
+        <!-- 별 무늬 -->
+        <text x="7.5" y="33" font-size="9">⭐</text>
+        <!-- 나무 블록 -->
+        <rect x="24" y="24" width="14" height="14" rx="3" fill="#FFE066"/>
+        <rect x="24" y="24" width="14" height="14" rx="3" fill="none" stroke="#C4A000" stroke-width="1.2"/>
+        <text x="28.5" y="34.5" font-size="9">🐰</text>
+        <!-- 작은 블록 위 -->
+        <rect x="28" y="14" width="10" height="10" rx="3" fill="#AED9E0"/>
+        <rect x="28" y="14" width="10" height="10" rx="3" fill="none" stroke="#70B0C0" stroke-width="1.2"/>
+        <text x="31.5" y="22" font-size="7">🥕</text>
+      </svg>
+    </div>
+
+    <!-- ===== 카펫 ===== -->
+    <div class="room-deco-carpet">
+      <svg width="100%" height="28" viewBox="0 0 170 28">
+        <ellipse cx="85" cy="14" rx="82" ry="13" fill="#C8A8E9" opacity="0.55"/>
+        <ellipse cx="85" cy="14" rx="72" ry="9"  fill="#B090D0" opacity="0.4"/>
+        <ellipse cx="85" cy="14" rx="58" ry="6"  fill="#C8A8E9" opacity="0.3"/>
+        <!-- 패턴 -->
+        <text x="52"  y="18" font-size="9" opacity="0.7">🐾</text>
+        <text x="72"  y="17" font-size="8" opacity="0.6">🥕</text>
+        <text x="90"  y="18" font-size="9" opacity="0.7">🐾</text>
+        <text x="108" y="17" font-size="8" opacity="0.6">🥕</text>
+      </svg>
+    </div>
+
+    <!-- Effects Container -->
+    <div class="effect-container" id="effectContainer"></div>
+
+    <!-- ===== 토끼 거울 (벽) ===== -->
+    <div class="room-deco-mirror">
+      <svg width="38" height="50" viewBox="0 0 38 50">
+        <!-- 거울 프레임 -->
+        <rect x="2" y="2" width="34" height="42" rx="10" fill="#F5C8A0" stroke="#D4956A" stroke-width="2"/>
+        <rect x="5" y="5" width="28" height="36" rx="8" fill="#E8F8FF" opacity="0.9" stroke="#B0D8F0" stroke-width="1"/>
+        <!-- 반사 효과 -->
+        <path d="M8,10 Q10,8 13,10 Q10,22 9,30" stroke="white" stroke-width="2" fill="none" opacity="0.6" stroke-linecap="round"/>
+        <!-- 토끼 귀 장식 -->
+        <ellipse cx="12" cy="1" rx="3" ry="5" fill="#F8F0E8" stroke="#D4956A" stroke-width="1.5"/>
+        <ellipse cx="12" cy="1" rx="1.5" ry="3" fill="#FFBDCC"/>
+        <ellipse cx="26" cy="1" rx="3" ry="5" fill="#F8F0E8" stroke="#D4956A" stroke-width="1.5"/>
+        <ellipse cx="26" cy="1" rx="1.5" ry="3" fill="#FFBDCC"/>
+        <!-- 리본 장식 -->
+        <text x="14" y="46" font-size="8">🎀</text>
+      </svg>
+    </div>
+
+    <!-- ===== 당근 물뿌리개 ===== -->
+    <div class="room-deco-watering">
+      <svg width="32" height="36" viewBox="0 0 32 36">
+        <!-- 물통 몸체 -->
+        <ellipse cx="14" cy="22" rx="11" ry="10" fill="#AED9E0"/>
+        <ellipse cx="14" cy="14" rx="8" ry="4" fill="#B8E4EC"/>
+        <!-- 손잡이 -->
+        <path d="M22,18 Q30,14 28,24 Q26,28 22,26" stroke="#7BB8C0" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <!-- 주둥이 -->
+        <path d="M4,20 Q0,18 2,28" stroke="#7BB8C0" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <!-- 당근 무늬 -->
+        <text x="8" y="26" font-size="9">🥕</text>
+        <!-- 물방울 -->
+        <circle cx="1" cy="32" r="2" fill="#5BA8C0" opacity="0.7"/>
+        <circle cx="4" cy="34" r="1.5" fill="#5BA8C0" opacity="0.6"/>
+        <circle cx="7" cy="33" r="1.5" fill="#5BA8C0" opacity="0.5"/>
+      </svg>
+    </div>
+
+    <!-- ===== 그림책 더미 ===== -->
+    <div class="room-deco-bookstack">
+      <svg width="36" height="38" viewBox="0 0 36 38">
+        <!-- 책 3권 쌓기 -->
+        <!-- 맨 아래 (파랑) -->
+        <rect x="0" y="26" width="36" height="10" rx="2" fill="#AED9E0"/>
+        <rect x="0" y="26" width="5"  height="10" rx="2" fill="#7BB8C8"/>
+        <text x="8" y="34" font-size="6.5" fill="white">🐰 이야기</text>
+        <!-- 중간 (노랑) -->
+        <rect x="2" y="17" width="32" height="10" rx="2" fill="#FFE580"/>
+        <rect x="2" y="17" width="5"  height="10" rx="2" fill="#DDB800"/>
+        <text x="9" y="25" font-size="6.5" fill="#8B7000">🥕 동화</text>
+        <!-- 위 (분홍) -->
+        <rect x="4" y="8" width="28" height="10" rx="2" fill="#FFB7C5"/>
+        <rect x="4" y="8" width="5"  height="10" rx="2" fill="#E08090"/>
+        <text x="11" y="16" font-size="6.5" fill="white">💕 그림책</text>
+      </svg>
+    </div>
+
+    <!-- ===== 트로피 (당근 모양) ===== -->
+    <div class="room-deco-trophy">
+      <svg width="30" height="36" viewBox="0 0 30 36">
+        <!-- 트로피 컵 -->
+        <path d="M8,4 Q6,14 10,18 Q15,22 20,18 Q24,14 22,4 Z" fill="#FFD700"/>
+        <path d="M8,4 Q6,14 10,18 Q15,22 20,18 Q24,14 22,4 Z" fill="none" stroke="#C4A000" stroke-width="1.5"/>
+        <!-- 손잡이 -->
+        <path d="M8,8 Q4,8 4,13 Q4,18 8,16" stroke="#C4A000" stroke-width="2" fill="none"/>
+        <path d="M22,8 Q26,8 26,13 Q26,18 22,16" stroke="#C4A000" stroke-width="2" fill="none"/>
+        <!-- 받침대 -->
+        <rect x="11" y="22" width="8" height="5" rx="1" fill="#C4A000"/>
+        <rect x="7"  y="27" width="16" height="5" rx="2" fill="#C4A000"/>
+        <!-- 당근 장식 -->
+        <text x="10" y="16" font-size="9">🥕</text>
+      </svg>
+    </div>
+
+    <!-- ===== 토끼 가랜드 배너 ===== -->
+    <div class="room-deco-banner">
+      <svg width="130" height="28" viewBox="0 0 130 28">
+        <!-- 줄 -->
+        <path d="M0,6 Q32,14 65,6 Q98,14 130,6" stroke="#FFB7C5" stroke-width="1.5" fill="none"/>
+        <!-- 깃발 1 -->
+        <polygon points="5,6 18,6 12,18" fill="#FF8FAB" opacity="0.85"/>
+        <!-- 깃발 2 -->
+        <polygon points="22,8 35,8 29,20" fill="#FFE580" opacity="0.85"/>
+        <!-- 깃발 3 -->
+        <polygon points="46,6 59,6 53,18" fill="#AED9E0" opacity="0.85"/>
+        <!-- 깃발 4 -->
+        <polygon points="66,6 79,6 73,18" fill="#C8A8E9" opacity="0.85"/>
+        <!-- 깃발 5 -->
+        <polygon points="86,8 99,8 93,20" fill="#FFB7C5" opacity="0.85"/>
+        <!-- 깃발 6 -->
+        <polygon points="107,6 120,6 114,18" fill="#FFE580" opacity="0.85"/>
+        <!-- 토끼/당근 아이콘 -->
+        <text x="8"  y="16" font-size="7">🐰</text>
+        <text x="25" y="16" font-size="7">🥕</text>
+        <text x="48" y="16" font-size="7">🐰</text>
+        <text x="68" y="15" font-size="7">🥕</text>
+        <text x="88" y="16" font-size="7">🐰</text>
+        <text x="108" y="15" font-size="7">🥕</text>
+      </svg>
+    </div>
+
+    <!-- Main Bunny -->
+    <div class="bunny-stage" id="bunnyStage" onclick="petBunny()">
+      <div class="status-bubble" id="statusBubble">😴 자고 싶어요</div>
+      <div id="mainBunny">
+        <svg id="bunnyContainer" width="140" height="200" viewBox="0 0 140 200" style="overflow:visible;filter:drop-shadow(0 8px 15px rgba(0,0,0,0.12))">
+          <!-- Dirt overlay (hidden by default) -->
+          <g id="dirtOverlay" opacity="0"></g>
+          <!-- Shine overlay (hidden by default) -->
+          <g id="shineOverlay" opacity="0">
+            <circle cx="55" cy="55" r="5" fill="white" opacity="0.7"/>
+            <circle cx="95" cy="45" r="3" fill="white" opacity="0.7"/>
+            <circle cx="40" cy="75" r="4" fill="white" opacity="0.6"/>
+          </g>
+          
+          <!-- Body (size changes with age/weight) -->
+          <g id="bunnyBody">
+            <!-- Tail -->
+            <circle id="bunnyTail" cx="108" cy="155" r="10" fill="white"/>
+            <!-- Body -->
+            <ellipse id="bunnyBodyShape" cx="70" cy="148" rx="35" ry="38" fill="#F8F0E8"/>
+            <!-- Tummy -->
+            <ellipse id="bunnyTummy" cx="70" cy="152" rx="20" ry="22" fill="#FFEDE8" opacity="0.8"/>
+            <!-- Arms -->
+            <ellipse id="armLeft" cx="40" cy="148" rx="11" ry="17" fill="#F8F0E8" transform="rotate(-15,40,148)"/>
+            <ellipse id="armRight" cx="100" cy="148" rx="11" ry="17" fill="#F8F0E8" transform="rotate(15,100,148)"/>
+            <!-- Legs -->
+            <ellipse id="legLeft" cx="52" cy="180" rx="16" ry="10" fill="#F8F0E8"/>
+            <ellipse id="legRight" cx="88" cy="180" rx="16" ry="10" fill="#F8F0E8"/>
+          </g>
+
+          <!-- Outfit body layer (앞치마·목도리 등 몸통 위에 그림) -->
+          <g id="outfitLayerBody"></g>
+
+          <!-- Head group -->
+          <g id="bunnyHead">
+            <!-- Ears (behind head) -->
+            <g id="bunnyEars">
+              <ellipse id="earLeftOuter" cx="47" cy="42" rx="13" ry="28" fill="#F8F0E8"/>
+              <ellipse id="earLeftInner" cx="47" cy="42" rx="8" ry="21" fill="#FFBDCC"/>
+              <ellipse id="earRightOuter" cx="93" cy="42" rx="13" ry="28" fill="#F8F0E8"/>
+              <ellipse id="earRightInner" cx="93" cy="42" rx="8" ry="21" fill="#FFBDCC"/>
+            </g>
+
+            <!-- Head -->
+            <circle id="bunnyHeadCircle" cx="70" cy="88" r="32" fill="#F8F0E8"/>
+
+            <!-- Outfit top layer -->
+            <g id="outfitLayerTop"></g>
+
+            <!-- Cheeks -->
+            <ellipse id="cheekLeft" cx="52" cy="95" rx="10" ry="7" fill="#FFCCD8" opacity="0.5"/>
+            <ellipse id="cheekRight" cx="88" cy="95" rx="10" ry="7" fill="#FFCCD8" opacity="0.5"/>
+
+            <!-- Eyes (will change based on mood) -->
+            <g id="bunnyEyes">
+              <!-- Normal eyes -->
+              <g id="eyesNormal">
+                <circle cx="58" cy="84" r="7" fill="#2C1810"/>
+                <circle cx="82" cy="84" r="7" fill="#2C1810"/>
+                <circle cx="60" cy="82" r="2.5" fill="white"/>
+                <circle cx="84" cy="82" r="2.5" fill="white"/>
+              </g>
+              <!-- Heart eyes (hidden) -->
+              <g id="eyesHeart" display="none">
+                <text x="52" y="90" font-size="14" text-anchor="middle">💗</text>
+                <text x="79" y="90" font-size="14" text-anchor="middle">💗</text>
+              </g>
+              <!-- Sad eyes (hidden) -->
+              <g id="eyesSad" display="none">
+                <path d="M53 88 Q58 82 63 88" stroke="#2C1810" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <path d="M77 88 Q82 82 87 88" stroke="#2C1810" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              </g>
+              <!-- Closed eyes / yawn (hidden) -->
+              <g id="eyesClosed" display="none">
+                <path d="M52 86 Q58 82 64 86" stroke="#2C1810" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <path d="M76 86 Q82 82 88 86" stroke="#2C1810" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              </g>
+            </g>
+
+            <!-- Nose -->
+            <ellipse cx="70" cy="95" rx="3.5" ry="2.5" fill="#FF9FB0"/>
+
+            <!-- Mouth (changes with mood) -->
+            <g id="bunnyMouth">
+              <!-- Normal mouth -->
+              <g id="mouthNormal">
+                <path d="M64 100 Q70 107 76 100" stroke="#FF9FB0" stroke-width="2" fill="none" stroke-linecap="round"/>
+              </g>
+              <!-- Happy mouth -->
+              <g id="mouthHappy" display="none">
+                <path d="M62 100 Q70 110 78 100" stroke="#FF7090" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <text x="70" y="114" font-size="10" text-anchor="middle" fill="#FF7090">✦</text>
+              </g>
+              <!-- Sad mouth -->
+              <g id="mouthSad" display="none">
+                <path d="M64 106 Q70 100 76 106" stroke="#8a7a8a" stroke-width="2" fill="none" stroke-linecap="round"/>
+              </g>
+              <!-- Yawn mouth -->
+              <g id="mouthYawn" display="none">
+                <ellipse cx="70" cy="105" rx="10" ry="8" fill="#FF9FB0" opacity="0.8"/>
+                <path d="M62 99 Q70 97 78 99" stroke="#FF7090" stroke-width="1.5" fill="none"/>
+              </g>
+            </g>
+          </g>
+
+          <!-- Outfit accessories layer -->
+          <g id="outfitAccessory"></g>
+          <!-- Dirt spots (shown when dirty) -->
+
+          <!-- Dirt spots (shown when dirty) -->
+          <g id="dirtSpots" opacity="0">
+            <circle cx="55" cy="140" r="5" fill="#8B7355" opacity="0.4"/>
+            <circle cx="85" cy="158" r="4" fill="#8B7355" opacity="0.3"/>
+            <circle cx="65" cy="100" r="3" fill="#8B7355" opacity="0.3"/>
+          </g>
+        </svg>
+      </div>
+      <!-- Yawn bubble -->
+      <div id="yawnBubble" style="display:none;position:absolute;top:-50px;left:50%;transform:translateX(-50%);font-size:1.5rem">💤</div>
+    </div>
+
+    <!-- Carrot on ground (shown when feeding) -->
+    <div id="carrotOnGround" style="display:none;position:absolute;bottom:30%;left:42%;font-size:2rem;z-index:20;animation:bunnyBounce 0.5s ease-out">🥕</div>
+  </div>
+
+  <!-- Action Area -->
+  <div class="action-area">
+    <!-- Tabs -->
+    <div class="action-tabs">
+      <button class="tab-btn active" onclick="switchTab('care')">💝 돌봄</button>
+      <button class="tab-btn" onclick="switchTab('play')">🎮 놀이</button>
+      <button class="tab-btn" onclick="switchTab('outfit')">👗 옷입히기</button>
+    </div>
+
+    <!-- Care Tab -->
+    <div class="tab-panel active" id="tabCare">
+      <div class="action-btns">
+        <button class="action-btn care-btn" onclick="feedCarrot()">
+          <span class="btn-icon">🥕</span>
+          <span class="btn-label">당근 주기</span>
+        </button>
+        <button class="action-btn care-btn" onclick="brushHair()">
+          <span class="btn-icon">🪮</span>
+          <span class="btn-label">빗질하기</span>
+        </button>
+        <button class="action-btn care-btn" onclick="washBunny()">
+          <span class="btn-icon">🛁</span>
+          <span class="btn-label">씻겨주기</span>
+        </button>
+        <button class="action-btn care-btn" onclick="petBunny()">
+          <span class="btn-icon">🤗</span>
+          <span class="btn-label">쓰다듬기</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Play Tab -->
+    <div class="tab-panel" id="tabPlay">
+      <div class="action-btns">
+        <button class="action-btn play-btn" onclick="openCraftGame()">
+          <span class="btn-icon">🎨</span>
+          <span class="btn-label">만들기 놀이</span>
+        </button>
+        <button class="action-btn play-btn" onclick="openPuzzleGame()">
+          <span class="btn-icon">🧩</span>
+          <span class="btn-label">퍼즐 맞추기</span>
+        </button>
+        <button class="action-btn play-btn" onclick="playTogether()">
+          <span class="btn-icon">⚽</span>
+          <span class="btn-label">같이 놀기</span>
+        </button>
+        <button class="action-btn play-btn" onclick="singTogether()">
+          <span class="btn-icon">🎵</span>
+          <span class="btn-label">노래 부르기</span>
+        </button>
+        <button class="action-btn play-btn" onclick="readBook()">
+          <span class="btn-icon">📚</span>
+          <span class="btn-label">책 읽어주기</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Outfit Tab -->
+    <div class="tab-panel" id="tabOutfit">
+      <div class="outfit-grid" id="outfitGrid">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== END SCREEN ====== -->
+<div class="screen" id="endScreen">
+  <div class="end-title">🐰 독립했어요!</div>
+  <div id="endBunnyDisplay" style="margin-bottom:12px"></div>
+  <div class="end-msg" id="endMsg"></div>
+  <div class="score-circle">
+    <div class="score-num" id="finalScore">0</div>
+    <div class="score-label">/ 100점</div>
+  </div>
+  <div class="score-grade" id="scoreGrade">⭐⭐⭐</div>
+  <div style="font-size:0.8rem;color:#8a6a8a;margin-bottom:8px" id="scoreComment"></div>
+  <button class="replay-btn" onclick="restartGame()">🔄 다시 키우기</button>
+</div>
+
+<!-- ====== MINI GAME OVERLAY ====== -->
+<div id="miniGameOverlay">
+  <div class="mini-game-box">
+    <div class="mini-game-title">🎨 만들기 놀이!</div>
+    <div class="mini-game-subtitle">함께 만들고 싶은 것을 골라요 ✨</div>
+    <div class="craft-grid" id="craftGrid">
+      <div class="craft-item" onclick="selectCraft(this,'🎀')"><div>🎀</div><div class="craft-name">리본</div></div>
+      <div class="craft-item" onclick="selectCraft(this,'🌸')"><div>🌸</div><div class="craft-name">꽃</div></div>
+      <div class="craft-item" onclick="selectCraft(this,'⭐')"><div>⭐</div><div class="craft-name">별</div></div>
+      <div class="craft-item" onclick="selectCraft(this,'🍰')"><div>🍰</div><div class="craft-name">케이크</div></div>
+      <div class="craft-item" onclick="selectCraft(this,'🎈')"><div>🎈</div><div class="craft-name">풍선</div></div>
+      <div class="craft-item" onclick="selectCraft(this,'🏠')"><div>🏠</div><div class="craft-name">집</div></div>
+    </div>
+    <button class="close-mini" onclick="closeMiniGame()">✕</button>
+  </div>
+</div>
+
+<!-- ====== PUZZLE MINI GAME ====== -->
+<div id="puzzleOverlay">
+  <div class="puzzle-box">
+    <button class="puzzle-close" onclick="closePuzzleGame()">✕</button>
+    <div class="puzzle-title">🧩 퍼즐 맞추기!</div>
+    <div class="puzzle-sub" id="puzzleSub">그림과 같은 순서로 조각을 맞춰요 ✨</div>
+    <div class="puzzle-timer" id="puzzleTimer">⏱️ 30초</div>
+    <!-- 힌트 그림 -->
+    <div class="puzzle-hint">
+      <div id="puzzleHint" style="font-size:0.7rem;color:#8a6a8a;margin-bottom:4px">완성 그림 힌트</div>
+      <div id="puzzleHintGrid" style="display:grid;grid-template-columns:repeat(4,28px);gap:3px;justify-content:center"></div>
+    </div>
+    <!-- 진행 -->
+    <div class="puzzle-progress" id="puzzleProgressText">0 / 16 조각 완성</div>
+    <div class="puzzle-progress-bar"><div class="puzzle-progress-fill" id="puzzleProgressFill" style="width:0%"></div></div>
+    <!-- 퍼즐 그리드 -->
+    <div class="puzzle-grid" id="puzzleGrid"></div>
+    <!-- 결과 -->
+    <div class="puzzle-result" id="puzzleResult"></div>
+  </div>
+</div>
+
+<!-- ====== WASH MINI GAME (목욕탕 배경) ====== -->
+<div id="washOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:500;align-items:center;justify-content:center;flex-direction:column;background:linear-gradient(180deg,#5BB8D4 0%,#7ED3EC 35%,#B0EAF8 60%,#E0F8FF 100%);">
+  <!-- 목욕탕 장식 (절대위치) -->
+  <div style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden">
+    <!-- 타일 패턴 -->
+    <svg width="100%" height="100%" style="opacity:0.18">
+      <defs>
+        <pattern id="tileP" width="40" height="40" patternUnits="userSpaceOnUse">
+          <rect width="40" height="40" fill="none" stroke="#fff" stroke-width="1.5"/>
+          <rect x="2" y="2" width="36" height="36" rx="4" fill="#e0f8ff" stroke="#aadff0" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#tileP)"/>
+    </svg>
+    <!-- 거품들 -->
+    <div style="position:absolute;font-size:2rem;top:8%;left:5%;animation:floatDeco 3s ease-in-out infinite">🫧</div>
+    <div style="position:absolute;font-size:1.5rem;top:12%;right:8%;animation:floatDeco 2.5s ease-in-out infinite;animation-delay:0.5s">🫧</div>
+    <div style="position:absolute;font-size:2.5rem;top:5%;left:40%;animation:floatDeco 4s ease-in-out infinite;animation-delay:1s">🫧</div>
+    <div style="position:absolute;font-size:1.2rem;bottom:20%;left:12%;animation:floatDeco 3.5s ease-in-out infinite;animation-delay:0.8s">🧴</div>
+    <div style="position:absolute;font-size:1.5rem;bottom:18%;right:10%;animation:floatDeco 3s ease-in-out infinite;animation-delay:0.3s">🚿</div>
+    <!-- 욕조 SVG -->
+    <svg width="100%" height="160" style="position:absolute;bottom:0" viewBox="0 0 400 160" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="200" cy="130" rx="180" ry="40" fill="#AEE4F4" opacity="0.5"/>
+      <rect x="20" y="100" width="360" height="55" rx="30" fill="#7EC8E3" opacity="0.6"/>
+      <!-- 물결 -->
+      <path d="M20,115 Q80,105 140,115 Q200,125 260,115 Q320,105 380,115" stroke="white" stroke-width="3" fill="none" opacity="0.6"/>
+      <!-- 욕조 발 -->
+      <rect x="60" y="155" width="15" height="20" rx="4" fill="#8bb8c8"/>
+      <rect x="325" y="155" width="15" height="20" rx="4" fill="#8bb8c8"/>
+      <!-- 수도꼭지 -->
+      <rect x="185" y="85" width="30" height="18" rx="5" fill="#9dd0e0"/>
+      <circle cx="200" cy="78" r="8" fill="#7bbcd4"/>
+      <!-- 물방울 -->
+      <ellipse cx="200" cy="100" rx="3" ry="5" fill="#5aafcf" opacity="0.8"/>
+    </svg>
+    <!-- 선반 -->
+    <div style="position:absolute;top:12%;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.7);border-radius:10px;padding:6px 16px;font-size:1.2rem;display:flex;gap:10px">🧼 🛁 🪥</div>
+    <!-- 욕실 창문 -->
+    <div style="position:absolute;top:8%;right:6%;width:55px;height:65px;background:linear-gradient(135deg,#c9edf7,#e8f8ff);border:3px solid #8bbccf;border-radius:8px 8px 3px 3px;overflow:hidden">
+      <div style="position:absolute;top:0;left:50%;width:2px;height:100%;background:rgba(139,188,207,0.5);transform:translateX(-50%)"></div>
+      <div style="position:absolute;top:50%;left:0;width:100%;height:2px;background:rgba(139,188,207,0.5);transform:translateY(-50%)"></div>
+      <div style="width:18px;height:8px;background:white;border-radius:30px;opacity:0.7;position:absolute;top:15%;left:8%"></div>
+    </div>
+  </div>
+  <!-- 실제 미니게임 박스 -->
+  <div class="mini-game-box" style="background:rgba(255,255,255,0.92);border:2px solid #7EC8E3;position:relative;z-index:1">
+    <div class="mini-game-title" style="color:#2980b9">🛁 목욕 시키기!</div>
+    <div class="mini-game-subtitle" id="washSubtitle">비누로 문질러 주세요! (0%)</div>
+    <canvas id="washCanvas" width="220" height="180"></canvas>
+    <div style="margin-top:10px">
+      <button class="close-mini" onclick="closeWash()">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 공주 변신 오버레이 ====== -->
+<div id="princessOverlay">
+  <div class="princess-title" id="princessTitle">✨ 공주님이 됐어요! ✨</div>
+  <div class="princess-sub" id="princessSub">무럭무럭 자라서 아름다운 공주님이 됐어요!<br>이제 왕국으로 떠날 시간이에요 👑</div>
+  <div class="princess-bunny-wrap">
+    <span class="princess-crown-sparkle" style="top:-20px;left:10px;animation-delay:0s">⭐</span>
+    <span class="princess-crown-sparkle" style="top:-25px;right:15px;animation-delay:0.6s">✨</span>
+    <span class="princess-crown-sparkle" style="top:10px;left:-15px;animation-delay:1.2s">💫</span>
+    <span class="princess-crown-sparkle" style="top:10px;right:-10px;animation-delay:0.3s">🌟</span>
+    <svg id="princessBunnySVG" width="160" height="200" viewBox="0 0 140 200" style="overflow:visible;filter:drop-shadow(0 0 20px rgba(255,215,0,0.6))"></svg>
+  </div>
+  <button class="princess-farewell-btn" onclick="confirmPrincess()">👑 왕국으로 출발!</button>
+</div>
+
+<!-- ====== FAREWELL OVERLAY ====== -->
+<div id="farewellOverlay">
+  <div class="farewell-box">
+    <div style="font-size:3rem;margin-bottom:8px">🐰💕</div>
+    <div class="farewell-title">독립하는 날</div>
+    <div class="farewell-msg" id="farewellMsg"></div>
+    <button class="farewell-btn" onclick="confirmFarewell()">결과 보기 →</button>
+  </div>
+</div>
+
+<script>
+// ================================================
+//  🐰 LIHA'S BUNNY RAISING GAME - CORE ENGINE
+// ================================================
+
+// ─── State ───────────────────────────────────────
+const state = {
+  hunger:  100,
+  clean:   100,
+  happy:   80,
+  growth:  0,
+  weight:  50,
+  stage:   0,
+  outfit: { hat: null, body: null, acc: null },
+  totalCare: 0,
+  careCounts: { feed:0, brush:0, wash:0, pet:0, play:0 },
+  lastInteraction: Date.now(),
+  lastPlayTime: Date.now(),   // 마지막 놀아준 시간
+  gameStartTime: Date.now(),
+  gameDuration: 10 * 60 * 1000,
+  isGameOver: false,
+  musicOn: true,
+  bunnyName: '뽀뽀',
+  furId: 'white',   // 선택한 털 색 ID
+};
+
+// ─── Game Loop Timers ─────────────────────────────
+let gameLoopInterval = null;
+let growthTimer = null;
+let moodTimer = null;
+let effectTimer = null;
+let moodState = 'normal'; // normal, happy, sad, yawn
+let moodTimeout = null;
+
+// ─── Outfit Data ─────────────────────────────────
+const outfits = [
+  { id:'none',    emoji:'❌',  label:'없음',      type:'body', svg: null },
+  { id:'pink',    emoji:'🎀',  label:'핑크 리본',  type:'hat',  svg: 'ribbon-pink' },
+  { id:'star',    emoji:'⭐',  label:'별 왕관',    type:'hat',  svg: 'crown-star' },
+  { id:'flower',  emoji:'🌸',  label:'꽃 머리띠',  type:'hat',  svg: 'flower-band' },
+  { id:'bow',     emoji:'🎗️', label:'나비 넥타이', type:'body', svg: 'bow-tie' },
+  { id:'apron',   emoji:'👘',  label:'앞치마',     type:'body', svg: 'apron' },
+  { id:'scarf',   emoji:'🧣',  label:'목도리',     type:'body', svg: 'scarf' },
+  { id:'glasses', emoji:'👓',  label:'안경',       type:'acc',  svg: 'glasses' },
+  { id:'party',   emoji:'🎉',  label:'파티 모자',  type:'hat',  svg: 'party-hat' },
+  { id:'hanbok',  emoji:'🪷',  label:'한복',       type:'body', svg: 'hanbok' },
+];
+
+// ─── Audio Engine ─────────────────────────────────
+let audioCtx = null;
+let bgMusicInterval = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq, type='sine', duration=0.2, gain=0.15, delay=0) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+    gainNode.gain.setValueAtTime(0, ctx.currentTime + delay);
+    gainNode.gain.linearRampToValueAtTime(gain, ctx.currentTime + delay + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + duration + 0.05);
+  } catch(e) {}
+}
+
+function playChime(notes, base=400) {
+  notes.forEach((mul,i) => playTone(base*mul, 'sine', 0.25, 0.12, i*0.12));
+}
+
+function playSoundHappy()  { playChime([1,1.25,1.5,2]); }
+function playSoundEat()    { playChime([1.2,1.0,1.3], 350); }
+function playSoundBrush()  { [0,1,2].forEach(i => playTone(600+i*100,'sawtooth',0.08,0.06,i*0.07)); }
+function playSoundWash()   { [0,1,2,3].forEach(i => playTone(400+i*80,'sine',0.1,0.08,i*0.05)); }
+function playSoundPlay()   { playChime([1,1.5,1.25,1.75,2], 300); }
+function playSoundSad()    { playChime([1,0.9,0.8], 300); }
+function playSoundGrow()   { playChime([1,1.2,1.5,1.8,2.2], 250); }
+function playSoundIndep()  { [0,1,2,3,4,5].forEach(i => playTone(300+i*80,'sine',0.3,0.12,i*0.15)); }
+function playSoundCraft()  { playChime([1.5,2,1.8,2.2,1.6], 350); }
+
+let bgNoteIdx = 0;
+const bgMelody = [261,293,329,349,392,349,329,293,261,0,329,392,440,392,329,0];
+function playBGNote() {
+  if (!state.musicOn) return;
+  const freq = bgMelody[bgNoteIdx % bgMelody.length];
+  if (freq > 0) playTone(freq, 'sine', 0.6, 0.05);
+  bgNoteIdx++;
+}
+
+function startBGMusic() {
+  stopBGMusic();
+  bgMusicInterval = setInterval(playBGNote, 650);
+}
+function stopBGMusic() {
+  if (bgMusicInterval) { clearInterval(bgMusicInterval); bgMusicInterval = null; }
+}
+function toggleMusic() {
+  state.musicOn = !state.musicOn;
+  document.getElementById('musicBtn').textContent = state.musicOn ? '🎵' : '🔇';
+  if (state.musicOn) startBGMusic();
+  else stopBGMusic();
+}
+
+// ─── 성장 단계 정의 (5단계) ──────────────────────────
+// stage 0~4 : 신생아 → 아기 → 청소년 → 어른 → 완전성장
+// growth %  :   0~20   20~40   40~65   65~85   85~100
+// scaleBase: SVG(140x200) 기준 CSS 스케일
+// 완전성장(stage4) 때 토끼가 화면 절반을 채우도록:
+//   room-scene 높이 ≈ 전체의 62%, 화면높이 = 100vh
+//   토끼 SVG 높이 200px → 화면 50vh 채우려면 scale ≈ 50vh/200px
+//   모바일(667px 기준) : 50*6.67/200 ≈ 1.67  → scaleBase = 1.65 사용
+const STAGE_DEFS = [
+  { name: '신생아 토끼 🍼', minGrowth:  0, scaleBase: 0.32, bottomPct: 28 },
+  { name: '아기 토끼 🐣',   minGrowth: 20, scaleBase: 0.50, bottomPct: 28 },
+  { name: '청소년 토끼 🌱', minGrowth: 40, scaleBase: 0.72, bottomPct: 28 },
+  { name: '어른 토끼 🌸',   minGrowth: 65, scaleBase: 1.00, bottomPct: 28 },
+  { name: '완전성장 🌟',    minGrowth: 85, scaleBase: 1.65, bottomPct:  2 },
+];
+
+function getStageIndex(growth) {
+  for (let i = STAGE_DEFS.length - 1; i >= 0; i--) {
+    if (growth >= STAGE_DEFS[i].minGrowth) return i;
+  }
+  return 0;
+}
+
+// ─── SVG Bunny Renderer ───────────────────────────
+function updateBunnyVisual() {
+  const s = state;
+
+  // Stage 계산 (growth 기반)
+  const stageIdx = getStageIndex(s.growth);
+  s.stage = stageIdx;
+  const stageDef = STAGE_DEFS[stageIdx];
+
+  // Scale based on weight (30~90 → scale 0.88~1.12)
+  const weightScale = 0.88 + (s.weight - 30) / (90 - 30) * 0.24;
+  
+  // Total scale = stage base * weight
+  const totalScale = stageDef.scaleBase * weightScale;
+
+  // Apply transform to bunny container - 발끝(70,190) 기준으로 스케일, scaleX 반전 상태 보존
+  const container = document.getElementById('bunnyContainer');
+  const flipX = bunnyFacingRight ? '' : ' scaleX(-1)';
+  container.style.transform = `scale(${totalScale})${flipX}`;
+  container.style.transformOrigin = `70px 190px`;
+
+  // stage에 따라 bunny-stage bottom 위치도 조정
+  // 완전성장 시에는 토끼가 아래서부터 위로 꽉 차도록
+  const bunnyStageEl = document.getElementById('bunnyStage');
+  bunnyStageEl.style.bottom = stageDef.bottomPct + '%';
+
+  // Fur color: 선택한 털색 + 뚱뚱/야윔에 따른 명도 조정
+  const fur = FUR_COLORS.find(f => f.id === s.furId) || FUR_COLORS[0];
+  const furMain  = s.weight > 68 ? shadeColor(fur.main, -12)  : s.weight < 36 ? shadeColor(fur.main, +15) : fur.main;
+  const furInner = fur.inner;
+  const furTummy = fur.tummy;
+  document.querySelectorAll('#bunnyBodyShape,#bunnyHeadCircle,#earLeftOuter,#earRightOuter,#armLeft,#armRight,#legLeft,#legRight').forEach(el => el.setAttribute('fill', furMain));
+  document.querySelectorAll('#earLeftInner,#earRightInner').forEach(el => el.setAttribute('fill', furInner));
+  document.getElementById('bunnyTummy')?.setAttribute('fill', furTummy);
+
+  // 얼룩 패턴 표시/숨김
+  applySpotPattern(fur);
+
+  // Dirt / clean effect
+  const dirtSpots = document.getElementById('dirtSpots');
+  const shineOverlay = document.getElementById('shineOverlay');
+  const dirtAlpha = Math.max(0, (50 - s.clean) / 50);
+  const shineAlpha = Math.max(0, (s.clean - 80) / 20);
+  if(dirtSpots)   dirtSpots.setAttribute('opacity',   dirtAlpha.toFixed(2));
+  if(shineOverlay) shineOverlay.setAttribute('opacity', shineAlpha.toFixed(2));
+
+  // Cheek intensity
+  const cheekAlpha = s.happy > 60 ? 0.6 : 0.3;
+  document.getElementById('cheekLeft').setAttribute('opacity', cheekAlpha);
+  document.getElementById('cheekRight').setAttribute('opacity', cheekAlpha);
+
+  // Update growth bar
+  document.getElementById('growthBar').style.width = s.growth + '%';
+
+  // Stat bars
+  document.getElementById('hungerBar').style.width = s.hunger + '%';
+  document.getElementById('cleanBar').style.width  = s.clean + '%';
+  document.getElementById('happyBar').style.width  = s.happy + '%';
+
+  // Bar colors
+  const hb = document.getElementById('hungerBar');
+  if (s.hunger < 25) hb.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
+  else if (s.hunger < 50) hb.style.background = 'linear-gradient(90deg, #e67e22, #f39c12)';
+  else hb.style.background = 'linear-gradient(90deg, #FF6B6B, #FF8E53)';
+
+  // Eye update (only if not in temporary mood)
+  if (moodState === 'normal') {
+    updateEyesMouth();
+  }
+
+  // Stage badge
+  document.getElementById('growthBadge').textContent = STAGE_DEFS[s.stage].name;
+
+  // 드롭섀도 색상도 털 색에 맞게 (선택)
+  const fur2 = FUR_COLORS.find(f => f.id === s.furId) || FUR_COLORS[0];
+  document.getElementById('bunnyContainer').style.filter =
+    `drop-shadow(0 8px 15px ${fur2.shadow})`;
+
+  // Update effects (smell, sparkle, flies)
+  updateAmbientEffects();
+}
+
+function updateEyesMouth() {
+  const s = state;
+  const hungry = s.hunger < 25;
+  const dirty  = s.clean < 25;
+  const bored  = s.happy < 25;
+  
+  let eyeState = 'normal', mouthState = 'normal';
+
+  if (hungry || dirty || bored) {
+    eyeState = 'sad'; mouthState = 'sad';
+  } else if (s.happy > 70 && s.hunger > 60 && s.clean > 60) {
+    eyeState = 'normal'; mouthState = 'normal';
+  }
+
+  setEyes(eyeState);
+  setMouth(mouthState);
+}
+
+function setEyes(state) {
+  const all = ['eyesNormal','eyesHeart','eyesSad','eyesClosed'];
+  all.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('display', id === 'eyes' + state.charAt(0).toUpperCase() + state.slice(1) ? 'block' : 'none');
+  });
+  // Map state names
+  const map = { normal: 'eyesNormal', heart: 'eyesHeart', sad: 'eyesSad', closed: 'eyesClosed' };
+  all.forEach(id => document.getElementById(id)?.setAttribute('display', 'none'));
+  if (map[state]) document.getElementById(map[state])?.setAttribute('display', 'block');
+}
+
+function setMouth(state) {
+  const map = { normal: 'mouthNormal', happy: 'mouthHappy', sad: 'mouthSad', yawn: 'mouthYawn' };
+  ['mouthNormal','mouthHappy','mouthSad','mouthYawn'].forEach(id => document.getElementById(id)?.setAttribute('display','none'));
+  if (map[state]) document.getElementById(map[state])?.setAttribute('display','block');
+}
+
+function showMoodTemporary(eyes, mouth, duration=2000) {
+  moodState = eyes;
+  clearTimeout(moodTimeout);
+  setEyes(eyes);
+  setMouth(mouth);
+  moodTimeout = setTimeout(() => {
+    moodState = 'normal';
+    updateEyesMouth();
+  }, duration);
+}
+
+// ─── Outfit Rendering ────────────────────────────
+const outfitSVGs = {
+  'ribbon-pink': `<g id="outfitRibbon">
+    <ellipse cx="70" cy="52" rx="26" ry="4" fill="#FF8FAB" opacity="0.8"/>
+    <polygon points="55,44 65,52 55,60" fill="#FF8FAB"/>
+    <polygon points="85,44 75,52 85,60" fill="#FF8FAB"/>
+    <circle cx="70" cy="52" r="6" fill="#FFB7C5"/>
+  </g>`,
+  'crown-star': `<g id="outfitCrown">
+    <polygon points="70,28 75,42 90,42 78,51 83,65 70,56 57,65 62,51 50,42 65,42" fill="#FFE066" opacity="0.95"/>
+    <circle cx="70" cy="40" r="4" fill="#FF8FAB"/>
+    <circle cx="58" cy="46" r="2.5" fill="#C8A8E9"/>
+    <circle cx="82" cy="46" r="2.5" fill="#C8A8E9"/>
+  </g>`,
+  'flower-band': `<g id="outfitFlower">
+    <rect x="44" y="52" width="52" height="5" rx="2.5" fill="#C8A8E9" opacity="0.8"/>
+    <circle cx="70" cy="52" r="7" fill="#FFB7C5"/>
+    <circle cx="70" cy="45" r="4" fill="#FFE4EC"/>
+    <circle cx="77" cy="50" r="4" fill="#FFE4EC"/>
+    <circle cx="74" cy="58" r="4" fill="#FFE4EC"/>
+    <circle cx="63" cy="50" r="4" fill="#FFE4EC"/>
+    <circle cx="66" cy="58" r="4" fill="#FFE4EC"/>
+    <circle cx="70" cy="52" r="4" fill="#FFB7C5"/>
+  </g>`,
+  'bow-tie': `<g id="outfitBow">
+    <polygon points="55,124 68,130 55,136" fill="#FF8FAB" opacity="0.9"/>
+    <polygon points="85,124 72,130 85,136" fill="#FF8FAB" opacity="0.9"/>
+    <circle cx="70" cy="130" r="4" fill="#FFD9E8"/>
+  </g>`,
+  'apron': `<g id="outfitApron">
+    <!-- 어깨끈 왼쪽 -->
+    <path d="M55,115 Q52,132 52,145" stroke="#7EC8D2" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <!-- 어깨끈 오른쪽 -->
+    <path d="M85,115 Q88,132 88,145" stroke="#7EC8D2" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <!-- 앞치마 몸판 -->
+    <rect x="48" y="125" width="44" height="50" rx="8" fill="#AED9E0" opacity="0.92"/>
+    <!-- 앞치마 포켓 -->
+    <rect x="56" y="145" width="28" height="20" rx="5" fill="white" opacity="0.65"/>
+    <!-- 포켓 꽃 장식 -->
+    <circle cx="70" cy="155" r="5" fill="#FF8FAB" opacity="0.9"/>
+    <circle cx="70" cy="149" r="3.5" fill="#FFE4EC"/>
+    <circle cx="75" cy="153" r="3.5" fill="#FFE4EC"/>
+    <circle cx="73" cy="160" r="3.5" fill="#FFE4EC"/>
+    <circle cx="65" cy="153" r="3.5" fill="#FFE4EC"/>
+    <circle cx="67" cy="160" r="3.5" fill="#FFE4EC"/>
+    <!-- 앞치마 상단 가슴받이 -->
+    <rect x="58" y="113" width="24" height="15" rx="5" fill="#AED9E0" opacity="0.92"/>
+    <text x="70" y="125" font-size="9" text-anchor="middle">🌸</text>
+  </g>`,
+  'scarf': `<g id="outfitScarf">
+    <path d="M48,115 Q70,108 92,115 Q90,125 88,122 Q70,118 52,122 Z" fill="#FF8FAB" opacity="0.85"/>
+    <path d="M52,122 Q55,128 50,135" stroke="#FF8FAB" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.85"/>
+  </g>`,
+  'glasses': `<g id="outfitGlasses">
+    <circle cx="58" cy="84" r="9" fill="none" stroke="#8B7355" stroke-width="2.5"/>
+    <circle cx="82" cy="84" r="9" fill="none" stroke="#8B7355" stroke-width="2.5"/>
+    <line x1="67" y1="84" x2="73" y2="84" stroke="#8B7355" stroke-width="2"/>
+    <line x1="35" y1="82" x2="49" y2="84" stroke="#8B7355" stroke-width="2"/>
+    <line x1="91" y1="84" x2="105" y2="82" stroke="#8B7355" stroke-width="2"/>
+  </g>`,
+  'party-hat': `<g id="outfitParty">
+    <polygon points="70,16 52,60 88,60" fill="#C8A8E9" opacity="0.9"/>
+    <polygon points="70,16 52,60 88,60" fill="url(#partyStripes)" opacity="0.5"/>
+    <ellipse cx="70" cy="60" rx="18" ry="5" fill="#B090D0" opacity="0.8"/>
+    <text x="63" y="22" font-size="10">⭐</text>
+    <text x="70" y="14" font-size="8">🎊</text>
+    <defs>
+      <pattern id="partyStripes" width="10" height="10" patternUnits="userSpaceOnUse">
+        <line x1="0" y1="10" x2="10" y2="0" stroke="#FF8FAB" stroke-width="3"/>
+      </pattern>
+    </defs>
+  </g>`,
+
+  /* ───── 한복 ───── */
+  'hanbok': `<g id="outfitHanbok">
+    <!-- 치마 (밝은 분홍/청록) -->
+    <path d="M38,148 Q40,130 50,122 Q60,118 70,118 Q80,118 90,122 Q100,130 102,148 Q100,182 70,186 Q40,182 38,148 Z"
+          fill="#E8A0B8" opacity="0.95"/>
+    <!-- 치마 주름 -->
+    <path d="M50,122 Q52,150 50,180" stroke="#D080A0" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M58,119 Q60,152 59,182" stroke="#D080A0" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M70,118 Q70,155 70,186" stroke="#D080A0" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M82,119 Q80,152 81,182" stroke="#D080A0" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M90,122 Q88,150 90,180" stroke="#D080A0" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <!-- 치마 단 장식 -->
+    <path d="M40,175 Q55,180 70,181 Q85,180 100,175" stroke="#FFB7D0" stroke-width="3" fill="none"/>
+    <!-- 저고리 몸통 (청록) -->
+    <path d="M46,118 Q48,110 55,108 Q62,106 70,107 Q78,106 85,108 Q92,110 94,118 Q92,132 70,135 Q48,132 46,118 Z"
+          fill="#5BBFB0" opacity="0.97"/>
+    <!-- 저고리 깃 (흰색) -->
+    <path d="M58,108 Q70,115 82,108" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- 고름 (리본 끈) -->
+    <path d="M64,115 Q70,120 76,115" stroke="#FFD080" stroke-width="2.5" fill="none"/>
+    <circle cx="70" cy="118" r="3.5" fill="#FFD080"/>
+    <!-- 고름 늘어지는 끈 -->
+    <path d="M70,121 Q67,128 65,135" stroke="#FFD080" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M70,121 Q73,128 75,133" stroke="#FFD080" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- 소매 왼쪽 -->
+    <path d="M46,118 Q38,122 34,132 Q32,140 36,144 Q40,146 46,140 Q48,132 48,122 Z"
+          fill="#5BBFB0" opacity="0.97"/>
+    <!-- 소매 오른쪽 -->
+    <path d="M94,118 Q102,122 106,132 Q108,140 104,144 Q100,146 94,140 Q92,132 92,122 Z"
+          fill="#5BBFB0" opacity="0.97"/>
+    <!-- 소매 끝 흰 동정 -->
+    <ellipse cx="36" cy="144" rx="5" ry="4" fill="white" opacity="0.9"/>
+    <ellipse cx="104" cy="144" rx="5" ry="4" fill="white" opacity="0.9"/>
+    <!-- 저고리 꽃 자수 -->
+    <circle cx="62" cy="122" r="3" fill="#FFB7D0" opacity="0.8"/>
+    <circle cx="78" cy="122" r="3" fill="#FFB7D0" opacity="0.8"/>
+  </g>`,
+};
+
+function renderOutfit() {
+  const { hat, body, acc } = state.outfit;
+  
+  document.getElementById('outfitLayerTop').innerHTML  = hat  && outfitSVGs[hat]  ? outfitSVGs[hat]  : '';
+  document.getElementById('outfitLayerBody').innerHTML = body && outfitSVGs[body] ? outfitSVGs[body] : '';
+  document.getElementById('outfitAccessory').innerHTML = acc  && outfitSVGs[acc]  ? outfitSVGs[acc]  : '';
+}
+
+function equipOutfit(id) {
+  const item = outfits.find(o => o.id === id);
+  if (!item) return;
+  if (id === 'none') {
+    state.outfit = { hat: null, body: null, acc: null };
+  } else if (item.type === 'hat') {
+    state.outfit.hat = state.outfit.hat === item.svg ? null : item.svg;
+  } else if (item.type === 'body') {
+    state.outfit.body = state.outfit.body === item.svg ? null : item.svg;
+  } else if (item.type === 'acc') {
+    state.outfit.acc = state.outfit.acc === item.svg ? null : item.svg;
+  }
+  renderOutfit();
+  updateOutfitGrid();
+  showFeedback('👗 예쁜 옷을 입었어요!');
+  playSoundHappy();
+  showHearts();
+}
+
+function updateOutfitGrid() {
+  const grid = document.getElementById('outfitGrid');
+  grid.innerHTML = outfits.map(o => {
+    const isEquipped = 
+      (o.type === 'hat' && state.outfit.hat === o.svg) ||
+      (o.type === 'body' && state.outfit.body === o.svg) ||
+      (o.type === 'acc' && state.outfit.acc === o.svg) ||
+      (o.id === 'none' && !state.outfit.hat && !state.outfit.body && !state.outfit.acc);
+    return `<div class="outfit-item${isEquipped?' equipped':''}" onclick="equipOutfit('${o.id}')">
+      <div>${o.emoji}</div>
+      <div class="outfit-label">${o.label}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Ambient Effects ──────────────────────────────
+let flyElements = [];
+let smellElements = [];
+let sparkleElements = [];
+
+function updateAmbientEffects() {
+  const ec = document.getElementById('effectContainer');
+  const dirtyLevel = Math.max(0, (50 - state.clean) / 50);
+  
+  // Flies when dirty
+  const wantedFlies = state.clean < 30 ? Math.floor(3 * (1 - state.clean/30)) : 0;
+  while (flyElements.length > wantedFlies) {
+    const el = flyElements.pop();
+    el.remove();
+  }
+  while (flyElements.length < wantedFlies) {
+    const fly = document.createElement('div');
+    fly.className = 'fly';
+    fly.textContent = '🪰';
+    fly.style.left = (35 + Math.random() * 30) + '%';
+    fly.style.top  = (15 + Math.random() * 50) + '%';
+    fly.style.animationDuration = (1.5 + Math.random()) + 's';
+    fly.style.animationDelay = (Math.random()*2) + 's';
+    ec.appendChild(fly);
+    flyElements.push(fly);
+  }
+
+  // Smell when dirty
+  const wantedSmell = state.clean < 50 ? 3 : 0;
+  while (smellElements.length > wantedSmell) {
+    const el = smellElements.pop();
+    el.remove();
+  }
+  while (smellElements.length < wantedSmell) {
+    const s = document.createElement('div');
+    s.className = 'smell-particle';
+    s.textContent = '💨';
+    s.style.left = (30 + Math.random() * 40) + '%';
+    s.style.top  = (20 + Math.random() * 30) + '%';
+    s.style.animationDelay = (Math.random()*3) + 's';
+    s.style.animationDuration = (2+Math.random()) + 's';
+    ec.appendChild(s);
+    smellElements.push(s);
+  }
+
+  // Sparkles when clean
+  const wantedSparkle = state.clean > 80 ? 3 : 0;
+  while (sparkleElements.length > wantedSparkle) {
+    const el = sparkleElements.pop();
+    el.remove();
+  }
+  while (sparkleElements.length < wantedSparkle) {
+    const sp = document.createElement('div');
+    sp.className = 'sparkle';
+    sp.textContent = ['✨','⭐','💫'][Math.floor(Math.random()*3)];
+    sp.style.left = (25 + Math.random() * 50) + '%';
+    sp.style.top  = (10 + Math.random() * 60) + '%';
+    sp.style.animationDelay = (Math.random()*2) + 's';
+    sp.style.animationDuration = (1.5+Math.random()) + 's';
+    ec.appendChild(sp);
+    sparkleElements.push(sp);
+  }
+}
+
+// ─── Hearts Effect ───────────────────────────────
+function showHearts() {
+  const stage = document.getElementById('bunnyStage');
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      const h = document.createElement('div');
+      h.className = 'heart-float';
+      h.textContent = ['💕','💗','💖','💝','🩷'][i % 5];
+      h.style.left = (20 + Math.random() * 60) + '%';
+      h.style.top  = (20 + Math.random() * 40) + '%';
+      h.style.position = 'absolute';
+      stage.appendChild(h);
+      setTimeout(() => h.remove(), 1600);
+    }, i * 150);
+  }
+}
+
+function showFeedback(text) {
+  const existing = document.querySelector('.action-feedback');
+  if (existing) existing.remove();
+  
+  const fb = document.createElement('div');
+  fb.className = 'action-feedback';
+  fb.textContent = text;
+  document.getElementById('roomScene').appendChild(fb);
+  setTimeout(() => fb.remove(), 2100);
+}
+
+function showLevelUp(text) {
+  const el = document.createElement('div');
+  el.className = 'levelup-toast';
+  el.innerHTML = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+  confettiBurst();
+}
+
+function confettiBurst() {
+  const emojis = ['🌸','⭐','💕','🎉','✨','🌟','💫'];
+  for (let i=0; i<20; i++) {
+    setTimeout(() => {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+      c.style.left = (5 + Math.random()*90) + 'vw';
+      c.style.top  = (5 + Math.random()*40) + 'vh';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 2100);
+    }, i * 80);
+  }
+}
+
+// ─── 🐰 토끼 자율 이동 시스템 ───────────────────────
+let wanderInterval = null;
+let bunnyFacingRight = true; // 현재 바라보는 방향
+
+function startWander() {
+  stopWander();
+  // 7~14초마다 랜덤 이동
+  scheduleNextWander();
+}
+
+function stopWander() {
+  if (wanderInterval) { clearTimeout(wanderInterval); wanderInterval = null; }
+}
+
+function scheduleNextWander() {
+  const delay = 7000 + Math.random() * 7000; // 7~14초
+  wanderInterval = setTimeout(() => {
+    if (!state.isGameOver) {
+      doWander();
+      scheduleNextWander();
+    }
+  }, delay);
+}
+
+function doWander() {
+  const stage = document.getElementById('bunnyStage');
+  if (!stage) return;
+
+  // 현재 left% 파악
+  const curLeft = parseFloat(stage.style.left) || 50;
+
+  // 이동 가능 범위: 15% ~ 85%
+  // 가장자리면 반대쪽으로, 아니면 랜덤
+  let newLeft;
+  if (curLeft < 25) {
+    newLeft = 35 + Math.random() * 30; // 오른쪽으로
+  } else if (curLeft > 75) {
+    newLeft = 35 + Math.random() * 30; // 왼쪽으로
+  } else {
+    newLeft = 15 + Math.random() * 70;
+  }
+
+  // 방향 결정 (이동 방향에 따라 토끼 뒤집기)
+  const goingRight = newLeft > curLeft;
+  if (goingRight !== bunnyFacingRight) {
+    bunnyFacingRight = goingRight;
+    const container = document.getElementById('bunnyContainer');
+    if (container) {
+      // scaleX(-1) 로 좌우 반전, transformOrigin 유지
+      const cur = container.style.transform || '';
+      // 기존 scale() 은 유지하고 scaleX 반전만 추가
+      container.style.transform = cur.replace(/scaleX\([^)]*\)/g,'')
+        + (goingRight ? '' : ' scaleX(-1)');
+    }
+  }
+
+  // 이동
+  stage.style.left = newLeft + '%';
+
+  // 이동 중 깡충 애니메이션
+  const bunny = document.getElementById('mainBunny');
+  if (bunny) {
+    bunny.style.animation = 'none';
+    bunny.offsetHeight;
+    bunny.style.animation = 'bunnyBounce 0.4s ease-out';
+    setTimeout(() => { bunny.style.animation = ''; }, 500);
+  }
+}
+
+// ─── Status Bubble (yawn, hungry, itchy) ─────────
+let yawnInterval  = null;
+let statusAlertInterval = null;   // 배고픔/청결 경고 타이머
+let scratchInterval     = null;   // 긁기 파티클 타이머
+let lastHungryAlert = 0;          // 중복 방지
+let lastItchyAlert  = 0;
+let lastBoreAlert   = 0;          // 놀이 부족 경고 중복 방지
+
+function startYawnCheck() {
+  yawnInterval = setInterval(() => {
+    if (state.isGameOver) return;
+    if (state.happy < 30 && Math.random() < 0.3) doYawn();
+  }, 6000);
+
+  // 배고픔/청결 경고 - 3초마다 체크
+  statusAlertInterval = setInterval(() => {
+    if (state.isGameOver) return;
+    const now = Date.now();
+
+    // 배고픔 경고 (hunger < 25)
+    if (state.hunger < 25 && now - lastHungryAlert > 6000) {
+      lastHungryAlert = now;
+      showHungryAlert();
+    }
+
+    // 청결 경고 (clean < 35)
+    if (state.clean < 35 && now - lastItchyAlert > 7000) {
+      lastItchyAlert = now;
+      showItchyAlert();
+    }
+
+    // 놀이 부족 경고 (90초 이상 안 놀아줌 + happy < 50)
+    const secSincePlay = (Date.now() - (state.lastPlayTime || state.gameStartTime)) / 1000;
+    if (secSincePlay > 90 && state.happy < 50 && now - lastBoreAlert > 10000) {
+      lastBoreAlert = now;
+      showBoreAlert();
+    }
+  }, 3000);
+}
+
+function doYawn() {
+  showMoodTemporary('closed','yawn', 2500);
+  document.getElementById('yawnBubble').style.display = 'block';
+  setTimeout(() => document.getElementById('yawnBubble').style.display = 'none', 2500);
+  showStatusBubble('😪 심심해요...', '', 3000);
+}
+
+// ─── 배고픔 경고 말풍선 ───────────────────────────
+function showHungryAlert() {
+  // 메시지 배열 - 배고파!! 배고파!! 강조
+  const msgs = [
+    '🥕 배고파!! 배고파!!',
+    '😭 배고파!! 배고파!! 당근!!',
+    '🍽️ 배고파!! 배고파!! 빨리요!!',
+    '😫 배고파!! 배고파!! 으앙~'
+  ];
+  const msg = msgs[Math.floor(Math.random() * msgs.length)];
+  showStatusBubble(msg, 'hungry', 4000);
+
+  // 토끼 운동 & 흔들림 애니메이션
+  showMoodTemporary('sad','sad', 2500);
+  playSoundSad();
+  // 배고픔 시 토끼 떨림 효과
+  const bunnyStage = document.getElementById('bunnyStage');
+  bunnyStage.style.animation = 'none';
+  bunnyStage.offsetHeight;
+  bunnyStage.style.animation = 'hungerShake 0.5s ease-in-out 3';
+  setTimeout(() => bunnyStage.style.animation = '', 1600);
+}
+
+// ─── 청결 경고 말풍선 + 긁기 이펙트 ──────────────
+function showItchyAlert() {
+  const msgs = [
+    '😣 간지러워~ 씻겨줘!',
+    '🛁 씻겨줘요~~ 간지러워!',
+    '💦 간지러워~ 간지러워~ 씻겨줘!!',
+    '🧼 온몸이 간지러워~ 씻겨줘요!'
+  ];
+  const msg = msgs[Math.floor(Math.random() * msgs.length)];
+  showStatusBubble(msg, 'itchy', 4000);
+
+  // 긁기 파티클 burst
+  burstScratch();
+  setTimeout(burstScratch, 600);
+  setTimeout(burstScratch, 1200);
+  playSoundSad();
+}
+
+// ─── 놀이 부족 경고 말풍선 ────────────────────────
+function showBoreAlert() {
+  const msgs = [
+    '🥺 같이 놀아줘요!! 심심해요~',
+    '😭 놀아줘~ 놀아줘~ 심심하단 말이에요!',
+    '🎮 같이 놀고 싶어요!! 제발요~',
+    '😢 심심해서 눈물이 나요~ 놀아줘요!',
+  ];
+  const msg = msgs[Math.floor(Math.random() * msgs.length)];
+  showStatusBubble(msg, 'bored', 4000);
+
+  // 하품 + 슬픈 표정
+  showMoodTemporary('sad', 'sad', 2500);
+  playSoundSad();
+}
+
+// ─── 말풍선 표시 공통 함수 ──────────────────────
+function showStatusBubble(text, cssClass, duration) {
+  const fb = document.getElementById('statusBubble');
+  // 클래스 초기화
+  fb.className = 'status-bubble' + (cssClass ? ' ' + cssClass : '');
+  fb.textContent = text;
+  fb.style.display = 'block';
+  setTimeout(() => {
+    fb.style.display = 'none';
+    fb.className = 'status-bubble';
+  }, duration);
+}
+
+// ─── 긁기 파티클 ─────────────────────────────────
+function burstScratch() {
+  const stage = document.getElementById('bunnyStage');
+  if (!stage) return;
+  const symbols = ['✦','～','💢','🌀','⚡','~'];
+  for (let i = 0; i < 5; i++) {
+    const p = document.createElement('div');
+    p.className = 'scratch-particle';
+    const angle = (Math.PI * 2 / 5) * i + Math.random() * 0.5;
+    const dist  = 30 + Math.random() * 30;
+    const tx    = Math.cos(angle) * dist;
+    const ty    = Math.sin(angle) * dist - 20;
+    const tr    = (Math.random() - 0.5) * 60;
+    p.style.setProperty('--tx', tx + 'px');
+    p.style.setProperty('--ty', ty + 'px');
+    p.style.setProperty('--tr', tr + 'deg');
+    p.textContent = symbols[i % symbols.length];
+    p.style.left  = (30 + Math.random() * 40) + '%';
+    p.style.top   = (20 + Math.random() * 50) + '%';
+    p.style.color = ['#FF6B6B','#FFD700','#7BC67E','#AED9E0','#C8A8E9'][i % 5];
+    stage.appendChild(p);
+    setTimeout(() => p.remove(), 1600);
+  }
+}
+
+// ─── Game Loop ────────────────────────────────────
+function startGameLoop() {
+  // Stat decrease loop (every 3 seconds)
+  gameLoopInterval = setInterval(() => {
+    if (state.isGameOver) return;
+    
+    const elapsed = (Date.now() - state.gameStartTime) / state.gameDuration;
+    const timeSinceCare = (Date.now() - state.lastInteraction) / 1000; // seconds
+    
+    // Faster stat drops if ignored for long
+    const neglectMult = timeSinceCare > 60 ? 2.0 : timeSinceCare > 30 ? 1.4 : 1.0;
+    
+    // Hunger decreases ~1% every 3s (10% per 30s)
+    state.hunger = Math.max(0, state.hunger - 0.8 * neglectMult);
+    
+    // Cleanliness decreases ~0.5% every 3s
+    state.clean = Math.max(0, state.clean - 0.5 * neglectMult);
+
+    // ─── 행복도 독립 패널티 계산 ────────────────────────
+    // 1) 배고픔 패널티: hunger < 50이면 행복 감소
+    let happyDelta = 0;
+    if (state.hunger < 20) {
+      happyDelta -= 1.8;   // 매우 배고픔 → 빠른 하락
+    } else if (state.hunger < 40) {
+      happyDelta -= 0.9;   // 배고픔
+    } else if (state.hunger < 55) {
+      happyDelta -= 0.3;   // 약간 배고픔
+    }
+
+    // 2) 청결도 패널티: clean < 50이면 행복 감소
+    if (state.clean < 20) {
+      happyDelta -= 1.4;   // 매우 더러움
+    } else if (state.clean < 40) {
+      happyDelta -= 0.7;
+    } else if (state.clean < 55) {
+      happyDelta -= 0.25;
+    }
+
+    // 3) 놀이 부족 패널티: 마지막 놀아준 시각으로부터 경과 시간
+    const secSincePlay = (Date.now() - (state.lastPlayTime || state.gameStartTime)) / 1000;
+    if (secSincePlay > 120) {
+      happyDelta -= 1.2;   // 2분 이상 안 놀아줌
+    } else if (secSincePlay > 60) {
+      happyDelta -= 0.5;   // 1분 이상
+    }
+
+    // 4) 반대로 상태가 좋으면 행복 회복 (소폭)
+    if (state.hunger > 70 && state.clean > 70) {
+      happyDelta += 0.15;
+    }
+
+    // 5) 행복도 갱신 (범위 0~100)
+    state.happy = Math.max(0, Math.min(100, state.happy + happyDelta));
+
+    // Weight changes: eating too much vs. too little
+    if (state.hunger < 30) {
+      state.weight = Math.max(28, state.weight - 0.15); // getting thinner
+    } else if (state.hunger > 85) {
+      state.weight = Math.min(92, state.weight + 0.1);  // getting fatter
+    } else {
+      // Normalize toward 50
+      state.weight += (50 - state.weight) * 0.005;
+    }
+
+    // Growth over time (total 10 min)
+    state.growth = Math.min(100, (Date.now() - state.gameStartTime) / state.gameDuration * 100);
+    
+    // Stage check - 5단계
+    const prevStage = state.stage;
+    const newStage  = getStageIndex(state.growth);
+    if (newStage > prevStage) {
+      state.stage = newStage;
+      const def = STAGE_DEFS[newStage];
+      const msgs = [
+        '',                           // 0 (신생아 → 아기 없음)
+        '🐣 아기 토끼로 자랐어요!',
+        '🌱 청소년 토끼로 자랐어요!',
+        '🌸 어른 토끼로 자랐어요!',
+        '🌟 완전히 다 자랐어요!',
+      ];
+      showLevelUp(msgs[newStage] || '🎉 성장했어요!');
+      playSoundGrow();
+
+      // 완전성장 단계 - 배경도 화사하게 변경
+      if (newStage === 4) {
+        document.getElementById('gameScreen').style.background =
+          'linear-gradient(180deg, #FFD6E7 0%, #FFF0FA 30%, #FFFFF0 65%, #F0FFF4 100%)';
+      }
+      updateBunnyVisual();
+    }
+    
+    // Independence check
+    if (state.growth >= 100 && !state.isGameOver) {
+      triggerIndependence();
+      return;
+    }
+
+    updateBunnyVisual();
+    updateTimer();
+  }, 3000);
+
+  startYawnCheck();
+  startWander();   // 🐰 자율 이동 시작
+  
+  // Random happy expressions
+  setInterval(() => {
+    if (!state.isGameOver && state.happy > 70 && moodState === 'normal' && Math.random() < 0.2) {
+      showMoodTemporary('heart','happy', 1800);
+    }
+  }, 8000);
+}
+
+function updateTimer() {
+  const elapsed = Date.now() - state.gameStartTime;
+  const remaining = Math.max(0, state.gameDuration - elapsed);
+  const min = Math.floor(remaining / 60000);
+  const sec = Math.floor((remaining % 60000) / 1000);
+  document.getElementById('timerDisplay').textContent = `⏰ ${min}:${sec.toString().padStart(2,'0')}`;
+}
+
+// ─── Care Actions ─────────────────────────────────
+function feedCarrot() {
+  if (state.isGameOver) return;
+  state.lastInteraction = Date.now();
+  
+  if (state.hunger >= 98) {
+    showFeedback('🥕 배가 불러요!');
+    return;
+  }
+  
+  state.hunger  = Math.min(100, state.hunger + 22);
+  state.happy   = Math.min(100, state.happy  + 8);
+  state.weight  = Math.min(92, state.weight  + 3);
+  state.totalCare++;
+  state.careCounts.feed++;
+
+  // Animate carrot
+  const carrot = document.getElementById('carrotOnGround');
+  carrot.style.display = 'block';
+  setTimeout(() => carrot.style.display = 'none', 800);
+  
+  animateBunny('eat');
+  showMoodTemporary('heart','happy', 1800);
+  showHearts();
+  playSoundEat();
+  showFeedback('🥕 냠냠! 맛있는 당근이에요!');
+  updateBunnyVisual();
+}
+
+function brushHair() {
+  if (state.isGameOver) return;
+  state.lastInteraction = Date.now();
+  
+  state.clean  = Math.min(100, state.clean  + 18);
+  state.happy  = Math.min(100, state.happy  + 12);
+  state.totalCare++;
+  state.careCounts.brush++;
+
+  animateBunny('bounce');
+  showMoodTemporary('heart','happy', 2000);
+  showHearts();
+  playSoundBrush();
+  showFeedback('🪮 부드럽게 빗질해 줬어요!');
+  updateBunnyVisual();
+}
+
+function washBunny() {
+  if (state.isGameOver) return;
+  // Open wash mini-game
+  openWashGame();
+}
+
+function petBunny() {
+  if (state.isGameOver) return;
+  state.lastInteraction = Date.now();
+  
+  state.happy = Math.min(100, state.happy + 10);
+  state.totalCare++;
+  state.careCounts.pet++;
+
+  animateBunny('bounce');
+  showMoodTemporary('heart','happy', 2000);
+  showHearts();
+  playSoundHappy();
+  showFeedback('🤗 쓰다듬어 줬어요! 기분 최고!');
+  updateBunnyVisual();
+}
+
+// ─── Play Actions ─────────────────────────────────
+
+// ─── 퍼즐 미니게임 ────────────────────────────────
+const PUZZLE_THEMES = [
+  {
+    name: '토끼 가족',
+    pieces: ['🐰','🐇','🐣','🥕','🌸','💕','⭐','🎀','🏠','🌈','🍎','🎂','🌷','💛','🎵','🌟'],
+    answer: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]  // 순서 인덱스
+  },
+  {
+    name: '봄 소풍',
+    pieces: ['🌸','🌼','🦋','🌈','🐰','🥕','🍓','🌻','🌿','🐝','🌺','💐','🍀','☀️','🌱','🎈'],
+    answer: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+  },
+  {
+    name: '달콤한 디저트',
+    pieces: ['🍰','🧁','🍩','🍪','🍫','🍬','🍭','🍮','🎂','🍦','🍨','🍧','🥧','🍡','🍯','🧇'],
+    answer: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+  },
+];
+
+let puzzleState = {
+  theme: null,
+  shuffled: [],    // 현재 그리드에 보이는 조각 순서 (인덱스 배열)
+  selected: null,  // 선택된 셀 인덱스
+  correctCount: 0,
+  timerSec: 30,
+  timerInterval: null,
+  finished: false,
+};
+
+function openPuzzleGame() {
+  if (state.isGameOver) return;
+  // 랜덤 테마 선택
+  const theme = PUZZLE_THEMES[Math.floor(Math.random() * PUZZLE_THEMES.length)];
+  puzzleState.theme = theme;
+  puzzleState.selected = null;
+  puzzleState.correctCount = 0;
+  puzzleState.timerSec = 30;
+  puzzleState.finished = false;
+
+  // 조각 섞기 (Fisher-Yates)
+  const arr = [...theme.answer]; // [0..15]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  puzzleState.shuffled = arr;
+
+  // 힌트 그리드 (정답 순서)
+  const hintGrid = document.getElementById('puzzleHintGrid');
+  hintGrid.innerHTML = theme.pieces.map((p, i) =>
+    `<div style="width:28px;height:28px;background:linear-gradient(135deg,#FFF0F8,#EDE8FF);
+      border-radius:6px;display:flex;align-items:center;justify-content:center;
+      font-size:1rem;border:1.5px solid #E8C8E8">${p}</div>`
+  ).join('');
+  document.getElementById('puzzleHint').textContent = `완성 그림: ${theme.name}`;
+
+  // 결과 숨기기
+  const resultEl = document.getElementById('puzzleResult');
+  resultEl.style.display = 'none';
+  document.getElementById('puzzleSub').textContent = '섞인 조각을 정답 순서대로 맞춰요! 두 조각을 탭해서 교환해요 ✨';
+
+  // 렌더
+  renderPuzzleGrid();
+  updatePuzzleProgress();
+
+  // 타이머 시작
+  clearInterval(puzzleState.timerInterval);
+  updatePuzzleTimer();
+  puzzleState.timerInterval = setInterval(() => {
+    if (puzzleState.finished) return;
+    puzzleState.timerSec--;
+    updatePuzzleTimer();
+    if (puzzleState.timerSec <= 0) {
+      clearInterval(puzzleState.timerInterval);
+      endPuzzle(false);
+    }
+  }, 1000);
+
+  document.getElementById('puzzleOverlay').classList.add('show');
+}
+
+function renderPuzzleGrid() {
+  const theme = puzzleState.theme;
+  const grid = document.getElementById('puzzleGrid');
+  const colors = ['#FFF0F8','#F0F8FF','#FFF8E8','#F0FFF0','#FDF0FF','#FFF0E8'];
+
+  grid.innerHTML = puzzleState.shuffled.map((pieceIdx, cellIdx) => {
+    const isCorrect = (pieceIdx === cellIdx);
+    const bg = colors[cellIdx % colors.length];
+    const selected = puzzleState.selected === cellIdx;
+    const correctClass = isCorrect ? 'correct' : '';
+    const selectedClass = selected ? 'selected' : '';
+    return `<div class="puzzle-piece ${correctClass} ${selectedClass}"
+      style="background:${isCorrect ? '' : bg}"
+      onclick="onPuzzlePieceClick(${cellIdx})"
+      data-cell="${cellIdx}">
+      ${theme.pieces[pieceIdx]}
+    </div>`;
+  }).join('');
+
+  // 올바른 자리 개수 세기
+  puzzleState.correctCount = puzzleState.shuffled.filter((p, i) => p === i).length;
+}
+
+function onPuzzlePieceClick(cellIdx) {
+  if (puzzleState.finished) return;
+
+  const piece = puzzleState.shuffled[cellIdx];
+  const isAlreadyCorrect = (piece === cellIdx);
+
+  // 이미 맞은 조각은 선택 불가
+  if (isAlreadyCorrect) {
+    playTone(880, 'sine', 0.1, 0.08);
+    return;
+  }
+
+  if (puzzleState.selected === null) {
+    // 첫 선택
+    puzzleState.selected = cellIdx;
+    renderPuzzleGrid();
+    playTone(660, 'sine', 0.12, 0.1);
+  } else if (puzzleState.selected === cellIdx) {
+    // 같은 조각 다시 탭 → 선택 해제
+    puzzleState.selected = null;
+    renderPuzzleGrid();
+  } else {
+    // 두 번째 선택 → 교환
+    const a = puzzleState.selected;
+    const b = cellIdx;
+    [puzzleState.shuffled[a], puzzleState.shuffled[b]] = [puzzleState.shuffled[b], puzzleState.shuffled[a]];
+    puzzleState.selected = null;
+
+    // 교환 후 맞는지 체크
+    const aCorrect = puzzleState.shuffled[a] === a;
+    const bCorrect = puzzleState.shuffled[b] === b;
+
+    renderPuzzleGrid();
+    updatePuzzleProgress();
+
+    if (aCorrect || bCorrect) {
+      playChime([1, 1.25], 520);
+    } else {
+      playTone(300, 'triangle', 0.15, 0.08);
+    }
+
+    // 전부 맞았는지
+    const allCorrect = puzzleState.shuffled.every((p, i) => p === i);
+    if (allCorrect) {
+      clearInterval(puzzleState.timerInterval);
+      setTimeout(() => endPuzzle(true), 400);
+    }
+  }
+}
+
+function updatePuzzleProgress() {
+  const correct = puzzleState.shuffled.filter((p, i) => p === i).length;
+  const total = puzzleState.shuffled.length;
+  document.getElementById('puzzleProgressText').textContent = `${correct} / ${total} 조각 완성`;
+  document.getElementById('puzzleProgressFill').style.width = (correct / total * 100) + '%';
+}
+
+function updatePuzzleTimer() {
+  const s = puzzleState.timerSec;
+  const color = s <= 10 ? '#e74c3c' : s <= 20 ? '#e67e22' : '#9B59B6';
+  document.getElementById('puzzleTimer').style.color = color;
+  document.getElementById('puzzleTimer').textContent = `⏱️ ${s}초`;
+}
+
+function endPuzzle(success) {
+  puzzleState.finished = true;
+  const resultEl = document.getElementById('puzzleResult');
+  resultEl.style.display = 'block';
+
+  if (success) {
+    const timeBonus = puzzleState.timerSec;
+    resultEl.textContent = `🎉 완성! +${10 + Math.floor(timeBonus / 3)}점 보너스!`;
+    resultEl.style.color = '#27AE60';
+    // 스탯 보너스
+    state.lastInteraction = Date.now();
+    state.lastPlayTime = Date.now();
+    state.happy  = Math.min(100, state.happy  + 30);
+    state.clean  = Math.max(0,   state.clean  - 5);
+    state.hunger = Math.max(0,   state.hunger - 3);
+    state.totalCare++;
+    state.careCounts.play++;
+    animateBunny('bounce');
+    showMoodTemporary('heart','happy', 3000);
+    showHearts();
+    playSoundCraft();
+    confettiBurst();
+    showFeedback('🧩 퍼즐 완성! 대단해요!!');
+    updateBunnyVisual();
+    setTimeout(() => closePuzzleGame(), 2200);
+  } else {
+    // 시간 초과 — 부분 점수
+    const correct = puzzleState.shuffled.filter((p, i) => p === i).length;
+    resultEl.textContent = `⏰ 시간 초과! ${correct}조각 맞췄어요 다음엔 더 빠르게!`;
+    resultEl.style.color = '#e67e22';
+    state.lastInteraction = Date.now();
+    state.lastPlayTime = Date.now();
+    const bonus = Math.floor(correct / 2);
+    state.happy  = Math.min(100, state.happy  + 8 + bonus);
+    state.totalCare++;
+    state.careCounts.play++;
+    playSoundSad();
+    showFeedback(`🧩 ${correct}조각 맞췄어요! 다시 도전!`);
+    updateBunnyVisual();
+    setTimeout(() => closePuzzleGame(), 2500);
+  }
+}
+
+function closePuzzleGame() {
+  clearInterval(puzzleState.timerInterval);
+  puzzleState.finished = true;
+  document.getElementById('puzzleOverlay').classList.remove('show');
+}
+
+// ─── Play Actions ─────────────────────────────────
+function openCraftGame() {
+  if (state.isGameOver) return;
+  document.getElementById('miniGameOverlay').classList.add('show');
+}
+
+function playTogether() {
+  if (state.isGameOver) return;
+  state.lastInteraction = Date.now();
+  state.lastPlayTime = Date.now();
+  
+  state.happy  = Math.min(100, state.happy  + 20);
+  state.hunger = Math.max(0, state.hunger   - 5);
+  state.clean  = Math.max(0, state.clean    - 8);
+  state.totalCare++;
+  state.careCounts.play++;
+
+  animateBunny('bounce');
+  showMoodTemporary('heart','happy', 3000);
+  showHearts();
+  playSoundPlay();
+  confettiBurst();
+  showFeedback('⚽ 같이 놀았어요! 너무 신나요!');
+  updateBunnyVisual();
+}
+
+function singTogether() {
+  if (state.isGameOver) return;
+  state.lastInteraction = Date.now();
+  state.lastPlayTime = Date.now();
+  
+  state.happy = Math.min(100, state.happy + 15);
+  state.clean = Math.max(0, state.clean   - 4);
+  state.totalCare++;
+  state.careCounts.play++;
+  
+  playChime([1,1.2,1.5,1.8,2.0,1.8,1.5,1.2,1.0], 330);
+  animateBunny('bounce');
+  showMoodTemporary('heart','happy', 2500);
+  showHearts();
+  showFeedback('🎵 같이 노래 불렀어요!');
+  updateBunnyVisual();
+}
+
+function readBook() {
+  if (state.isGameOver) return;
+  state.lastInteraction = Date.now();
+  state.lastPlayTime = Date.now();
+  state.happy  = Math.min(100, state.happy  + 12);
+  state.hunger = Math.max(0,   state.hunger - 2);
+  state.totalCare++;
+  state.careCounts.play++;
+  playChime([1,1.25,1.5], 280);
+  animateBunny('bounce');
+  showMoodTemporary('heart','happy', 2000);
+  showHearts();
+  showFeedback('📚 책을 읽어줬어요! 상상력이 쑥쑥!');
+  updateBunnyVisual();
+}
+
+// ─── Bunny Animations ────────────────────────────
+function animateBunny(type) {
+  const bunny = document.getElementById('mainBunny');
+  bunny.style.animation = 'none';
+  bunny.offsetHeight; // reflow
+  const map = { bounce: 'bunnyBounce 0.4s ease-out', eat: 'bunnyEat 0.5s ease-out', wash: 'bunnyWash 0.6s ease-out' };
+  bunny.style.animation = map[type] || '';
+  setTimeout(() => bunny.style.animation = '', 700);
+}
+
+// ─── Mini Game - Craft ───────────────────────────
+function selectCraft(el, emoji) {
+  document.querySelectorAll('.craft-item').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  
+  setTimeout(() => {
+    state.lastInteraction = Date.now();
+    state.lastPlayTime = Date.now();
+    state.happy  = Math.min(100, state.happy  + 25);
+    state.clean  = Math.max(0, state.clean - 6);  // 🎨 공작 활동도 조금 더러워짐
+    state.totalCare++;
+    state.careCounts.play++;
+    
+    animateBunny('bounce');
+    showMoodTemporary('heart','happy', 3000);
+    showHearts();
+    playSoundCraft();
+    confettiBurst();
+    
+    const name = el.querySelector('.craft-name')?.textContent || emoji;
+    showFeedback(`🎨 ${name}을(를) 같이 만들었어요!`);
+    updateBunnyVisual();
+    closeMiniGame();
+  }, 600);
+}
+
+function closeMiniGame() {
+  document.getElementById('miniGameOverlay').classList.remove('show');
+}
+
+// ─── Mini Game - Wash ────────────────────────────
+let washCtx = null;
+let washProgress = 0;
+let isWashing = false;
+let washPainted = new Set();
+
+function openWashGame() {
+  const overlay = document.getElementById('washOverlay');
+  overlay.style.display = 'flex';
+  
+  const canvas = document.getElementById('washCanvas');
+  washCtx = canvas.getContext('2d');
+  washProgress = 0;
+  washPainted.clear();
+  
+  // Draw dirty bunny silhouette
+  washCtx.clearRect(0,0,220,180);
+  
+  // Background (bath)
+  const grad = washCtx.createLinearGradient(0,0,0,180);
+  grad.addColorStop(0, '#AED9E0');
+  grad.addColorStop(1, '#7FC8D2');
+  washCtx.fillStyle = grad;
+  washCtx.fillRect(0,0,220,180);
+  
+  // Bubbles
+  [[30,30,12],[180,25,8],[160,155,10],[40,150,7],[110,20,6]].forEach(([x,y,r]) => {
+    washCtx.beginPath();
+    washCtx.arc(x,y,r,0,Math.PI*2);
+    washCtx.strokeStyle = 'rgba(255,255,255,0.7)';
+    washCtx.lineWidth = 2;
+    washCtx.stroke();
+  });
+  
+  // Dirty bunny silhouette
+  washCtx.fillStyle = '#C8A878';
+  washCtx.beginPath();
+  washCtx.ellipse(110,120,45,50,0,0,Math.PI*2);
+  washCtx.fill();
+  washCtx.beginPath();
+  washCtx.arc(110,78,35,0,Math.PI*2);
+  washCtx.fill();
+  
+  // Ears
+  washCtx.beginPath();
+  washCtx.ellipse(90,42,14,30,0,0,Math.PI*2);
+  washCtx.fill();
+  washCtx.beginPath();
+  washCtx.ellipse(130,42,14,30,0,0,Math.PI*2);
+  washCtx.fill();
+
+  // Dirt spots
+  washCtx.fillStyle = '#8B6830';
+  [[105,95,8],[125,115,6],[95,130,7],[115,145,5],[90,85,5]].forEach(([x,y,r]) => {
+    washCtx.beginPath();
+    washCtx.arc(x,y,r,0,Math.PI*2);
+    washCtx.fill();
+  });
+  
+  // "Scrub here!" text
+  washCtx.font = 'bold 14px sans-serif';
+  washCtx.fillStyle = 'rgba(255,255,255,0.8)';
+  washCtx.textAlign = 'center';
+  washCtx.fillText('🧼 문질러 주세요!', 110, 172);
+  
+  updateWashSubtitle();
+  
+  // Touch / mouse events
+  canvas.ontouchstart = (e) => { e.preventDefault(); isWashing = true; };
+  canvas.ontouchend = () => { isWashing = false; };
+  canvas.ontouchmove = (e) => {
+    e.preventDefault();
+    if (!isWashing) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    Array.from(e.touches).forEach(t => {
+      const x = (t.clientX - rect.left) * scaleX;
+      const y = (t.clientY - rect.top)  * scaleY;
+      scrub(x, y);
+    });
+  };
+  canvas.onmousedown = () => isWashing = true;
+  canvas.onmouseup = () => isWashing = false;
+  canvas.onmousemove = (e) => {
+    if (!isWashing) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    scrub((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+  };
+}
+
+function scrub(x, y) {
+  if (!washCtx) return;
+  
+  // Draw soap bubbles
+  washCtx.fillStyle = 'rgba(255,255,255,0.6)';
+  for (let i=0; i<3; i++) {
+    const r = 4 + Math.random()*8;
+    washCtx.beginPath();
+    washCtx.arc(x + (Math.random()-0.5)*20, y + (Math.random()-0.5)*20, r, 0, Math.PI*2);
+    washCtx.fill();
+  }
+  
+  // Erase dirt (draw clean color)
+  washCtx.globalCompositeOperation = 'destination-out';
+  washCtx.fillStyle = 'rgba(0,0,0,0.4)';
+  washCtx.beginPath();
+  washCtx.arc(x, y, 15, 0, Math.PI*2);
+  washCtx.fill();
+  washCtx.globalCompositeOperation = 'source-over';
+  
+  // Track cells washed
+  const cellKey = `${Math.floor(x/20)},${Math.floor(y/20)}`;
+  washPainted.add(cellKey);
+  const totalCells = (220/20) * (180/20);
+  washProgress = Math.min(100, Math.round(washPainted.size / totalCells * 180));
+  
+  updateWashSubtitle();
+  
+  if (washProgress >= 70 && !state.isGameOver) {
+    finishWash();
+  }
+}
+
+function updateWashSubtitle() {
+  document.getElementById('washSubtitle').textContent = `비누로 문질러 주세요! (${washProgress}%)`;
+}
+
+function finishWash() {
+  state.lastInteraction = Date.now();
+  state.clean  = Math.min(100, state.clean  + 40);
+  state.happy  = Math.min(100, state.happy  + 15);
+  state.totalCare++;
+  state.careCounts.wash++;
+
+  animateBunny('wash');
+  showMoodTemporary('heart','happy', 3000);
+  showHearts();
+  playSoundWash();
+  showFeedback('🛁 깨끗하게 씻겨줬어요! 향기로워요~');
+  updateBunnyVisual();
+  setTimeout(closeWash, 800);
+}
+
+function closeWash() {
+  const overlay = document.getElementById('washOverlay');
+  overlay.style.display = 'none';
+  isWashing = false;
+}
+
+// ─── Independence (End Game) ──────────────────────
+function triggerIndependence() {
+  if (state.isGameOver) return;
+  state.isGameOver = true;
+  clearInterval(gameLoopInterval);
+  clearInterval(yawnInterval);
+  clearInterval(statusAlertInterval);
+  clearInterval(puzzleState.timerInterval);
+  closePuzzleGame();
+  stopWander();
+  stopBGMusic();
+
+  // 1단계: 공주 변신 오버레이 먼저 표시
+  showPrincessTransform();
+}
+
+// ─── 공주 변신 연출 ────────────────────────────────
+function showPrincessTransform() {
+  const fur  = FUR_COLORS.find(f => f.id === state.furId) || FUR_COLORS[0];
+  const name = state.bunnyName;
+  const score = calculateScore();
+
+  // 제목/부제
+  const titles = [
+    score >= 80 ? `👑 ${name} 공주님이 되었어요!` : `👑 ${name}(이)가 공주가 되었어요!`,
+  ];
+  document.getElementById('princessTitle').textContent = titles[0];
+
+  let sub = '';
+  if (score >= 85) sub = `정말 사랑 받으며 자란 ${name}(이)가<br>빛나는 공주님이 되었어요! ✨<br>왕국에서 모두가 기다리고 있어요 👑`;
+  else if (score >= 65) sub = `건강하게 자란 ${name}(이)가<br>아름다운 공주가 되었어요! 🌸<br>이제 넓은 세상으로 나갑니다 🏰`;
+  else sub = `${name}(이)가 이제 다 자랐어요.<br>공주가 되어 세상으로 떠납니다 🐰`;
+  document.getElementById('princessSub').innerHTML = sub;
+
+  // 공주 토끼 SVG 그리기 (왕관 + 드레스)
+  const spotsHtml = (fur.spots||[]).map(s =>
+    `<ellipse cx="${s.cx}" cy="${s.cy}" rx="${s.rx}" ry="${s.ry}" fill="${s.fill}" opacity="0.7"/>`
+  ).join('');
+
+  document.getElementById('princessBunnySVG').innerHTML = `
+    <!-- 드레스 (큰 치마) -->
+    <path d="M25,155 Q30,125 45,118 Q57,113 70,114 Q83,113 95,118 Q110,125 115,155 Q110,195 70,198 Q30,195 25,155 Z"
+          fill="#FFB7D0" opacity="0.97"/>
+    <path d="M32,158 Q35,145 45,140 Q57,136 70,136 Q83,136 95,140 Q105,145 108,158"
+          stroke="#FF8FAB" stroke-width="2.5" fill="none"/>
+    <!-- 드레스 레이스 단 -->
+    <path d="M28,185 Q45,190 70,191 Q95,190 112,185" stroke="white" stroke-width="4" fill="none" opacity="0.8"/>
+    <path d="M30,180 Q50,186 70,187 Q90,186 110,180" stroke="#FFD9E8" stroke-width="2" fill="none"/>
+    <!-- 반짝이 별 장식 -->
+    <text x="38"  y="168" font-size="10" opacity="0.9">✦</text>
+    <text x="96"  y="172" font-size="10" opacity="0.9">✦</text>
+    <text x="60"  y="182" font-size="9"  opacity="0.8">✦</text>
+    <text x="78"  y="178" font-size="8"  opacity="0.9">✦</text>
+    <!-- 몸 -->
+    <ellipse cx="70" cy="143" rx="28" ry="28" fill="${fur.main}"/>
+    ${spotsHtml}
+    <!-- 귀 -->
+    <ellipse cx="47" cy="56" rx="13" ry="28" fill="${fur.main}"/>
+    <ellipse cx="47" cy="56" rx="8"  ry="21" fill="${fur.inner}"/>
+    <ellipse cx="93" cy="56" rx="13" ry="28" fill="${fur.main}"/>
+    <ellipse cx="93" cy="56" rx="8"  ry="21" fill="${fur.inner}"/>
+    <!-- 머리 -->
+    <circle  cx="70" cy="94"  r="32"  fill="${fur.main}"/>
+    <!-- 왕관 👑 -->
+    <polygon points="48,52 55,32 65,48 70,26 75,48 85,32 92,52 48,52"
+             fill="#FFD700" opacity="0.97"/>
+    <ellipse cx="70" cy="52" rx="22" ry="5" fill="#FFC000" opacity="0.9"/>
+    <circle  cx="70" cy="26" r="5"  fill="#FF69B4"/>
+    <circle  cx="55" cy="32" r="3.5" fill="#87CEEB"/>
+    <circle  cx="85" cy="32" r="3.5" fill="#90EE90"/>
+    <circle  cx="50" cy="48" r="2.5" fill="#FFD700"/>
+    <circle  cx="90" cy="48" r="2.5" fill="#FFD700"/>
+    <!-- 뺨 -->
+    <ellipse cx="52" cy="100" rx="10" ry="7" fill="#FFCCD8" opacity="0.6"/>
+    <ellipse cx="88" cy="100" rx="10" ry="7" fill="#FFCCD8" opacity="0.6"/>
+    <!-- 눈 - 하트 -->
+    <text x="52" y="100" font-size="14" text-anchor="middle">💗</text>
+    <text x="79" y="100" font-size="14" text-anchor="middle">💗</text>
+    <!-- 코 -->
+    <ellipse cx="70" cy="104" rx="3.5" ry="2.5" fill="#FF9FB0"/>
+    <!-- 입 (미소) -->
+    <path d="M62 109 Q70 117 78 109" stroke="#FF7090" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <!-- 지팡이 (마법봉) -->
+    <line x1="105" y1="120" x2="128" y2="88" stroke="#FFD700" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="130" cy="85" r="8" fill="#FFD700" opacity="0.9"/>
+    <text x="127" y="89" font-size="10" text-anchor="middle">⭐</text>
+    <!-- 드레스 리본 -->
+    <polygon points="62,120 70,126 62,132" fill="#FF8FAB" opacity="0.9"/>
+    <polygon points="78,120 70,126 78,132" fill="#FF8FAB" opacity="0.9"/>
+    <circle cx="70" cy="126" r="4" fill="#FFD9E8"/>
+  `;
+
+  document.getElementById('princessOverlay').classList.add('show');
+  playSoundIndep();
+  confettiBurst();
+  // 추가 폭죽
+  setTimeout(confettiBurst, 800);
+  setTimeout(confettiBurst, 1600);
+}
+
+function confirmPrincess() {
+  document.getElementById('princessOverlay').classList.remove('show');
+
+  // 작별 메시지 생성
+  const score = calculateScore();
+  const name  = state.bunnyName;
+  let msg = '';
+  if (score >= 85) {
+    msg = `${name} 공주님! 정말 행복하게 자랐어요! 💕\n항상 맛있는 당근 주시고, 깨끗하게 씻겨주고,\n매일 같이 놀아줘서 정말 감사해요!\n\n이제 왕국으로 떠날게요! 🏰\n언제나 보고 싶을 거예요...👑`;
+  } else if (score >= 65) {
+    msg = `${name} 공주가 건강하게 자랐어요! 🌸\n잘 돌봐주셔서 감사해요!\n이제 독립할 시간이에요.\n저를 키워주셔서 정말 고마워요! 🥕`;
+  } else if (score >= 45) {
+    msg = `${name}(이)가 무럭무럭 자랐어요.\n조금 더 관심을 줬으면 좋았을 텐데...\n그래도 키워주셔서 고마워요! 👋`;
+  } else {
+    msg = `${name}(이)가 자랐어요...\n조금 외롭고 배고팠지만,\n함께해 줘서 고마워요. 다음엔 더 잘 부탁해요! 🐰`;
+  }
+  document.getElementById('farewellMsg').innerHTML = msg.replace(/\n/g,'<br>');
+  document.getElementById('farewellOverlay').classList.add('show');
+}
+
+function calculateScore() {
+  const statAvg = (state.hunger + state.clean + state.happy) / 3;
+  const careBonus = Math.min(20, state.totalCare * 0.8);
+  const score = Math.round(statAvg * 0.8 + careBonus);
+  return Math.min(100, Math.max(0, score));
+}
+
+function confirmFarewell() {
+  document.getElementById('farewellOverlay').classList.remove('show');
+  showEndScreen();
+}
+
+function showEndScreen() {
+  const score = calculateScore();
+  const fur  = FUR_COLORS.find(f => f.id === state.furId) || FUR_COLORS[0];
+  const name = state.bunnyName;
+
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('endMsg').innerHTML =
+    `${name}(이)가 다 컸어요!<br>정말 잘 키워주셔서 고마워요 💕`;
+
+  let grade = '', comment = '';
+  if      (score >= 90) { grade = '⭐⭐⭐ 완벽한 보호자!'; comment = `${name}이(가) 가장 행복한 어린 시절을 보냈어요!`; }
+  else if (score >= 75) { grade = '⭐⭐ 훌륭한 보호자!';  comment = '사랑 가득한 보살핌이었어요!'; }
+  else if (score >= 55) { grade = '⭐ 따뜻한 보호자';    comment = '다음엔 더 많이 챙겨줘요 💕'; }
+  else                  { grade = '💪 노력하는 보호자';  comment = '다시 도전해봐요!'; }
+
+  document.getElementById('scoreGrade').textContent   = grade;
+  document.getElementById('scoreComment').textContent = comment;
+
+  // 얼룩 SVG
+  const spotsHtml = (fur.spots||[]).map(s =>
+    `<ellipse cx="${(s.cx*0.71).toFixed(1)}" cy="${(s.cy*0.72).toFixed(1)}" rx="${s.rx}" ry="${s.ry}" fill="${s.fill}" opacity="0.75"/>`
+  ).join('');
+
+  document.getElementById('endBunnyDisplay').innerHTML = `
+    <svg width="100" height="130" viewBox="0 0 140 180" style="overflow:visible">
+      <circle cx="70" cy="140" r="38" fill="${fur.main}"/>
+      <circle cx="70" cy="85"  r="32" fill="${fur.main}"/>
+      <ellipse cx="50" cy="46" rx="12" ry="25" fill="${fur.main}"/>
+      <ellipse cx="50" cy="46" rx="7"  ry="18" fill="${fur.inner}"/>
+      <ellipse cx="90" cy="46" rx="12" ry="25" fill="${fur.main}"/>
+      <ellipse cx="90" cy="46" rx="7"  ry="18" fill="${fur.inner}"/>
+      ${spotsHtml}
+      <text x="52" y="92" font-size="14" text-anchor="middle">💗</text>
+      <text x="79" y="92" font-size="14" text-anchor="middle">💗</text>
+      <ellipse cx="52" cy="97" rx="9" ry="6" fill="#FFCCD8" opacity="0.6"/>
+      <ellipse cx="88" cy="97" rx="9" ry="6" fill="#FFCCD8" opacity="0.6"/>
+      <ellipse cx="70" cy="97" rx="3" ry="2" fill="#FF9FB0"/>
+      <path d="M62 104 Q70 112 78 104" stroke="#FF7090" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      ${state.outfit.hat && outfitSVGs[state.outfit.hat] ? outfitSVGs[state.outfit.hat] : ''}
+    </svg>`;
+
+  switchScreen('endScreen');
+}
+
+// ─── Screen Management ───────────────────────────
+function switchScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  
+  const tabs = ['care','play','outfit'];
+  const idx = tabs.indexOf(name);
+  document.querySelectorAll('.tab-btn')[idx]?.classList.add('active');
+  document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1))?.classList.add('active');
+  
+  if (name === 'outfit') updateOutfitGrid();
+}
+
+// ─── Start / Restart ─────────────────────────────
+// 타이틀 화면에서 "게임 시작" 버튼 클릭 시 호출
+function beginGame() {
+  const inputName = document.getElementById('bunnyNameInput').value.trim();
+  state.bunnyName = inputName || '뽀뽀';
+  document.getElementById('displayBunnyName').textContent = state.bunnyName;
+  startGame();
+}
+
+function startGame() {
+  // Reset state (이름/털색은 유지)
+  Object.assign(state, {
+    hunger: 100, clean: 100, happy: 80, growth: 0,
+    weight: 50, stage: 0,
+    outfit: { hat: null, body: null, acc: null },
+    totalCare: 0, careCounts: { feed:0, brush:0, wash:0, pet:0, play:0 },
+    lastInteraction: Date.now(),
+    lastPlayTime: Date.now(),
+    gameStartTime: Date.now(),
+    isGameOver: false,
+  });
+
+  // 이름 + 털색 UI 반영
+  document.getElementById('displayBunnyName').textContent = state.bunnyName;
+
+  // Clear effects
+  flyElements = []; smellElements = []; sparkleElements = [];
+  document.getElementById('effectContainer').innerHTML = '';
+
+  // 토끼 위치/방향 초기화
+  const bs = document.getElementById('bunnyStage');
+  if (bs) bs.style.left = '50%';
+  bunnyFacingRight = true;
+  const bc = document.getElementById('bunnyContainer');
+  if (bc) { const t = bc.style.transform||''; bc.style.transform = t.replace(/scaleX\([^)]*\)/g,''); }
+
+  // 게임 화면 배경 초기화
+  document.getElementById('gameScreen').style.background =
+    'linear-gradient(180deg, #B8E8FF 0%, #E0F4FF 35%, #F5FFF0 70%, #E8F5E9 100%)';
+
+  switchScreen('gameScreen');
+  
+  if (state.musicOn) startBGMusic();
+  
+  updateBunnyVisual();
+  renderOutfit();
+  updateOutfitGrid();
+  updateTimer();
+  
+  startGameLoop();
+  
+  // Welcome
+  setTimeout(() => showFeedback(`🐰 ${state.bunnyName}(이)야, 잘 부탁해! 🌟`), 800);
+}
+
+function restartGame() {
+  clearInterval(gameLoopInterval);
+  clearInterval(yawnInterval);
+  clearInterval(statusAlertInterval);
+  clearInterval(puzzleState.timerInterval);
+  closePuzzleGame();
+  lastHungryAlert = 0;
+  lastItchyAlert  = 0;
+  lastBoreAlert   = 0;
+  stopWander();
+  stopBGMusic();
+  flyElements = []; smellElements = []; sparkleElements = [];
+  document.getElementById('bunnyNameInput').value = state.bunnyName;
+  switchScreen('titleScreen');
+}
+
+// ─── 털 색 정의 (4가지) ─────────────────────────────
+//   main  : 몸통/머리/귀 바깥
+//   inner : 귀 안쪽
+//   tummy : 배
+//   shadow: 드롭섀도 컬러
+//   spots : 얼룩 무늬 (없음)
+const FUR_COLORS = [
+  {
+    id:'white', name:'흰 눈송이', emoji:'🤍',
+    main:'#F8F0E8', inner:'#FFBDCC', tummy:'#FFEDE8',
+    shadow:'rgba(0,0,0,0.12)', spots:[],
+    swatch: ['#F8F0E8','#F8F0E8'],
+  },
+  {
+    id:'gray', name:'먹구름 회색', emoji:'🩶',
+    main:'#C8C4C0', inner:'#E8B8C8', tummy:'#DED8D4',
+    shadow:'rgba(100,90,90,0.18)', spots:[],
+    swatch: ['#C8C4C0','#C8C4C0'],
+  },
+  {
+    id:'brown', name:'밤색 초코', emoji:'🤎',
+    main:'#C4956A', inner:'#E8A090', tummy:'#D8AA80',
+    shadow:'rgba(100,60,20,0.20)', spots:[],
+    swatch: ['#C4956A','#C4956A'],
+  },
+  {
+    id:'pink', name:'솜사탕 핑크', emoji:'🩷',
+    main:'#F0B8C8', inner:'#FF8FAB', tummy:'#FAD0DC',
+    shadow:'rgba(196,69,105,0.18)', spots:[],
+    swatch: ['#F0B8C8','#F0B8C8'],
+  },
+];
+
+// 16진 색상 밝기 조정 헬퍼
+function shadeColor(hex, amt) {
+  const n = parseInt(hex.replace('#',''), 16);
+  const r = Math.min(255, Math.max(0, (n>>16) + amt));
+  const g = Math.min(255, Math.max(0, ((n>>8)&0xFF) + amt));
+  const b = Math.min(255, Math.max(0, (n&0xFF) + amt));
+  return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('');
+}
+
+// 얼룩 패턴 SVG 레이어 적용
+function applySpotPattern(fur) {
+  let layer = document.getElementById('spotLayer');
+  if (!layer) {
+    layer = document.createElementNS('http://www.w3.org/2000/svg','g');
+    layer.id = 'spotLayer';
+    // outfitLayerBody 바로 앞에 삽입
+    const ref = document.getElementById('outfitLayerBody');
+    ref?.parentNode?.insertBefore(layer, ref);
+  }
+  if (!fur.spots || fur.spots.length === 0) {
+    layer.innerHTML = '';
+    return;
+  }
+  layer.innerHTML = fur.spots.map(s =>
+    `<ellipse cx="${s.cx}" cy="${s.cy}" rx="${s.rx}" ry="${s.ry}" fill="${s.fill}" opacity="0.75"/>`
+  ).join('');
+}
+
+// ─── 타이틀 털 색 미리보기 업데이트 ─────────────────
+function applyFurToTitle(fur) {
+  document.querySelectorAll('#titleBunnySVG .titleBunnyFurEl').forEach(el => el.setAttribute('fill', fur.main));
+  const f1 = document.getElementById('titleBunnyFur');
+  const f2 = document.getElementById('titleBunnyFur2');
+  const tm = document.getElementById('titleBunnyTummy');
+  if(f1) f1.setAttribute('fill', fur.main);
+  if(f2) f2.setAttribute('fill', fur.main);
+  if(tm) tm.setAttribute('fill', fur.tummy);
+  // 귀 안쪽 (titleBunnySVG 안 두번째·네번째 ellipse가 귀 안쪽)
+  const innerEls = document.querySelectorAll('#titleBunnySVG ellipse[fill="#FFBDCC"]');
+  innerEls.forEach(el => el.setAttribute('fill', fur.inner));
+
+  // 얼룩 미리보기
+  let sp = document.getElementById('titleSpotLayer');
+  if (!sp) {
+    sp = document.createElementNS('http://www.w3.org/2000/svg','g');
+    sp.id = 'titleSpotLayer';
+    document.getElementById('titleBunnySVG')?.appendChild(sp);
+  }
+  sp.innerHTML = (fur.spots||[]).map(s =>
+    `<ellipse cx="${s.cx * 1.14}" cy="${s.cy * 0.89}" rx="${s.rx}" ry="${s.ry}" fill="${s.fill}" opacity="0.7"/>`
+  ).join('');
+}
+
+// ─── 털 색 선택 팔레트 렌더링 ────────────────────────
+function selectFur(id) {
+  state.furId = id;
+  const fur = FUR_COLORS.find(f => f.id === id) || FUR_COLORS[0];
+  // 팔레트 UI 업데이트
+  document.querySelectorAll('.fur-swatch').forEach(el => {
+    el.classList.toggle('selected', el.dataset.id === id);
+  });
+  // 타이틀 토끼 미리보기 업데이트
+  applyFurToTitle(fur);
+}
+
+function buildFurPalette() {
+  const palette = document.getElementById('furPalette');
+  if (!palette) return;
+  palette.innerHTML = FUR_COLORS.map(fur => {
+    const isSpot = fur.spots && fur.spots.length > 0;
+    // 스와치: 단색은 원 하나, 얼룩은 반반
+    const swatchInner = isSpot
+      ? `<svg width="100%" height="100%" viewBox="0 0 40 40">
+           <circle cx="20" cy="20" r="20" fill="${fur.swatch[0]}"/>
+           <ellipse cx="22" cy="16" rx="9" ry="10" fill="${fur.swatch[1]}" opacity="0.8"/>
+           <ellipse cx="10" cy="28" rx="8" ry="7"  fill="${fur.swatch[1]}" opacity="0.7"/>
+         </svg>`
+      : `<svg width="100%" height="100%" viewBox="0 0 40 40">
+           <circle cx="20" cy="20" r="20" fill="${fur.swatch[0]}"/>
+           <circle cx="20" cy="20" r="20" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="2"/>
+         </svg>`;
+    return `<div class="fur-swatch${state.furId === fur.id ? ' selected' : ''}" data-id="${fur.id}" onclick="selectFur('${fur.id}')">
+      <div class="fur-circle">${swatchInner}</div>
+      <div class="fur-name">${fur.emoji} ${fur.name}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── 이름 입력 핸들러 ─────────────────────────────────
+function onNameInput(val) {
+  // 글자 입력 시 아무것도 안 해도 됨 (beginGame 때 읽음)
+}
+function clearName() {
+  document.getElementById('bunnyNameInput').value = '';
+}
+
+// ─── Init ─────────────────────────────────────────
+(function init() {
+  // 팔레트 빌드
+  buildFurPalette();
+
+  // 타이틀 토끼 흔들기 애니메이션
+  const tb = document.getElementById('titleBunny');
+  let dir = 1, angle = 0;
+  setInterval(() => {
+    angle += 0.025 * dir;
+    if (Math.abs(angle) > 0.07) dir *= -1;
+    if(tb) tb.setAttribute('transform', `rotate(${angle * 57.3}, 80, 130)`);
+  }, 50);
+
+  // 기본 털 색 미리보기 적용 (흰색)
+  applyFurToTitle(FUR_COLORS[0]);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🐧 99일의 생존 - 펭귄의 얼음 모험</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 배경 레이어 -->
+    <div id="bg-container">
+        <div id="sky"></div>
+        <div id="aurora"></div>
+        <div id="mountains"></div>
+        <div id="snowfall-container"></div>
+    </div>
+
+    <!-- 게임 UI 오버레이 -->
+    <div id="hud">
+        <div id="hud-left">
+            <div id="day-display">
+                <span class="hud-label">🗓️ DAY</span>
+                <span id="day-count">1</span>
+                <span class="hud-sub">/ 99</span>
+            </div>
+            <div id="score-display">
+                <span class="hud-label">🪙 SCORE</span>
+                <span id="score-count">0</span>
+            </div>
+        </div>
+        <div id="hud-center">
+            <div id="title-small">🐧 99일의 생존</div>
+        </div>
+        <div id="hud-right">
+            <div id="timer-display">
+                <span class="hud-label">⏱️ NEXT DAY</span>
+                <div id="timer-bar-bg">
+                    <div id="timer-bar"></div>
+                </div>
+            </div>
+            <button id="sound-btn" onclick="toggleSound()">🔊</button>
+        </div>
+    </div>
+
+    <!-- 메인 게임 캔버스 영역 -->
+    <div id="game-wrapper">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- 모바일 컨트롤 -->
+    <div id="mobile-controls">
+        <div id="dpad">
+            <button class="dpad-btn" id="btn-up" data-dir="up">▲</button>
+            <div class="dpad-row">
+                <button class="dpad-btn" id="btn-left" data-dir="left">◀</button>
+                <div class="dpad-center">🐧</div>
+                <button class="dpad-btn" id="btn-right" data-dir="right">▶</button>
+            </div>
+            <button class="dpad-btn" id="btn-down" data-dir="down">▼</button>
+        </div>
+    </div>
+
+    <!-- 얼음 위험도 / 바다표범 카운터 -->
+    <div id="ice-speed-indicator">
+        <div id="seal-count-display">🦭 <span id="seal-count">0</span>마리</div>
+        <div style="font-size:9px; color:rgba(255,180,180,0.7); margin-top:1px;">얼음 위험도</div>
+        <div id="ice-speed-bar-bg"><div id="ice-speed-bar" style="width:0%"></div></div>
+    </div>
+
+    <!-- 시작 화면 -->
+    <div id="start-screen" class="screen-overlay">
+        <div class="screen-content">
+            <div class="game-logo">
+                <div class="logo-penguin">🐧</div>
+                <h1 class="game-title">99일의 생존</h1>
+                <p class="game-subtitle">펭귄의 얼음 모험</p>
+            </div>
+            <div class="instructions">
+                <h3>📖 게임 방법</h3>
+                <ul>
+                    <li>🐧 펭귄을 움직여 얼음 위를 돌아다니세요</li>
+                    <li>🪙 동전을 먹으면 점수가 올라갑니다</li>
+                    <li>❄️ 같은 자리에 서 있으면 얼음이 깨져요!</li>
+                    <li>🦭 바다로 떨어지면 바다표범에게 잡힙니다</li>
+                    <li>🎯 99일을 버티면 승리!</li>
+                </ul>
+                <div class="controls-info">
+                    <span>⌨️ 키보드: 방향키 / WASD</span>
+                    <span>📱 모바일: 화면 하단 버튼</span>
+                </div>
+            </div>
+            <button id="start-btn" onclick="startGame()">🎮 게임 시작!</button>
+        </div>
+    </div>
+
+    <!-- 게임 오버 화면 -->
+    <div id="gameover-screen" class="screen-overlay" style="display:none;">
+        <div class="screen-content gameover-content">
+            <div id="gameover-animation">
+                <div id="angel-penguin">😇</div>
+                <div id="heaven-rays"></div>
+            </div>
+            <h2 id="gameover-title">게임 오버</h2>
+            <p id="gameover-message">바다표범에게 잡혔습니다...</p>
+            <div id="final-stats">
+                <div class="stat-item">
+                    <span class="stat-icon">🗓️</span>
+                    <span class="stat-label">생존 일수</span>
+                    <span id="final-days" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">🪙</span>
+                    <span class="stat-label">최종 점수</span>
+                    <span id="final-score" class="stat-value">0</span>
+                </div>
+            </div>
+            <button id="restart-btn" onclick="restartGame()">🔄 다시 시작</button>
+        </div>
+    </div>
+
+    <!-- 승리 화면 -->
+    <div id="win-screen" class="screen-overlay" style="display:none;">
+        <div class="screen-content win-content">
+            <div id="win-animation">
+                <div id="celebrate-penguin">🐧</div>
+                <div id="confetti-container"></div>
+            </div>
+            <h2 id="win-title">🎉 99일 생존 성공! 🎉</h2>
+            <p id="win-message">펭귄이 극지방의 겨울을 버텨냈습니다!</p>
+            <div id="final-stats-win">
+                <div class="stat-item">
+                    <span class="stat-icon">🪙</span>
+                    <span class="stat-label">최종 점수</span>
+                    <span id="win-score" class="stat-value">0</span>
+                </div>
+            </div>
+            <button id="win-restart-btn" onclick="restartGame()">🔄 다시 시작</button>
+        </div>
+    </div>
+
+    <script src="js/sound.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/draw_characters.js"></script>
+</body>
+</html>
