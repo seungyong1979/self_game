@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>🐘 코끼리를 피해라! 🍉</title>
+<meta name="description" content="버려진 동물원, 배고픈 코끼리를 피해 99스테이지까지 굴러가는 수박 액션 게임" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- 게임 캔버스 -->
+<canvas id="gameCanvas"></canvas>
+
+<!-- ───────── HUD (게임 중) ───────── -->
+<div id="hud" class="hidden">
+  <div class="hud-top">
+    <div class="hud-stage">
+      <span class="hud-label">STAGE</span>
+      <span id="stageNum">1</span><span id="stageMax">/99</span>
+    </div>
+    <div class="hud-lives" id="livesBox"></div>
+    <button id="muteBtn" class="icon-btn" title="소리 끄기/켜기">🔊</button>
+  </div>
+  <div class="hud-timerbar">
+    <div id="timerFill"></div>
+  </div>
+</div>
+
+<!-- 스테이지 클리어 토스트 -->
+<div id="stageToast" class="toast hidden"></div>
+
+<!-- ───────── 시작 화면 ───────── -->
+<div id="screenStart" class="screen">
+  <div class="screen-inner">
+    <div class="game-emoji-row">🐘💨🍉</div>
+    <h1 class="title">코끼리를<br>피해라!</h1>
+    <p class="story">
+      버려진 동물원에 배고픈 코끼리들이 화가 났어요! 🐘😡<br>
+      우리는 데굴데굴 굴러가는 수박🍉<br>
+      코끼리에게 <b>5번</b> 잡히면 게임 오버!<br>
+      <b>1~99 스테이지</b>를 뚫고 살아남아라!
+    </p>
+    <button id="startBtn" class="btn-main">▶ 게임 시작</button>
+    <p class="best-record" id="bestRecordText"></p>
+    <div class="how-to">
+      <p>📱 화면을 <b>터치하고 드래그</b>해서 수박을 움직여요</p>
+      <p>💻 <b>방향키 / WASD / 마우스</b>로도 조작할 수 있어요</p>
+    </div>
+    <a href="../index.html" class="home-link">🏠 게임 목록으로</a>
+  </div>
+</div>
+
+<!-- ───────── 일시정지 화면 ───────── -->
+<div id="screenPause" class="screen hidden">
+  <div class="screen-inner">
+    <h2 class="title small">일시정지 ⏸️</h2>
+    <button id="resumeBtn" class="btn-main">▶ 계속하기</button>
+    <button id="pauseRestartBtn" class="btn-sub">🔄 다시 시작</button>
+    <a href="../index.html" class="home-link">🏠 게임 목록으로</a>
+  </div>
+</div>
+
+<!-- ───────── 게임 오버 화면 ───────── -->
+<div id="screenOver" class="screen hidden">
+  <div class="screen-inner">
+    <div class="game-emoji-row">😵🍉💥</div>
+    <h2 class="title small">코끼리에게 잡혔어요!</h2>
+    <p class="result-text">도달한 스테이지: <span id="overStage">1</span></p>
+    <button id="retryBtn" class="btn-main">🔄 다시 도전</button>
+    <a href="../index.html" class="home-link">🏠 게임 목록으로</a>
+  </div>
+</div>
+
+<!-- ───────── 승리(엔딩) 화면 ───────── -->
+<div id="screenVictory" class="screen hidden">
+  <div class="victory-bg"></div>
+  <div class="victory-chars" id="victoryChars"></div>
+  <div class="screen-inner victory-inner">
+    <div class="game-emoji-row">🎉🍌🐘💛</div>
+    <h2 class="title small">GAME CLEAR!</h2>
+    <p class="result-text">
+      화났던 코끼리도 바나나를 만나 이제 행복해졌어요! 😊<br>
+      수박과 코끼리 모두 사이좋게 지내요 🍉🤝🐘
+    </p>
+    <button id="victoryRestartBtn" class="btn-main">🔄 처음부터 다시</button>
+    <a href="../index.html" class="home-link">🏠 게임 목록으로</a>
+  </div>
+</div>
+
+<!-- 화면 회전 안내 (아주 좁은 세로 화면) -->
+<div id="orientationHint" class="hidden">
+  📱 화면을 조금 더 크게 보면 더 재밌어요!
+</div>
+
+<script src="js/game.js"></script>
+</body>
+</html>
