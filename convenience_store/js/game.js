@@ -44,7 +44,24 @@ const MISSIONS = {
 };
 const MISSION_KEYS = Object.keys(MISSIONS);
 
-const SHOP_PRICES = { snack: 20, drink: 15, toy: 50 };
+// 상점 아이템 12종 (아이들이 좋아하는 간식/장난감 구성)
+const SHOP_ITEMS = [
+  { key: 'snack',    name: '맛있는 과자',   icon: 'assets/img/shop_snack.png',    price: 20 },
+  { key: 'drink',    name: '달콤한 음료',   icon: 'assets/img/shop_drink.png',    price: 15 },
+  { key: 'toy',      name: '귀여운 장난감', icon: 'assets/img/shop_toy.png',      price: 50 },
+  { key: 'icecream', name: '아이스크림',   icon: 'assets/img/shop_icecream.png', price: 25 },
+  { key: 'lollipop', name: '막대사탕',     icon: 'assets/img/shop_lollipop.png', price: 10 },
+  { key: 'chocolate',name: '초콜릿바',     icon: 'assets/img/shop_chocolate.png',price: 18 },
+  { key: 'donut',    name: '도넛',         icon: 'assets/img/shop_donut.png',    price: 22 },
+  { key: 'jelly',    name: '젤리 곰돌이',   icon: 'assets/img/shop_jelly.png',    price: 12 },
+  { key: 'balloon',  name: '풍선',         icon: 'assets/img/shop_balloon.png',  price: 14 },
+  { key: 'robot',    name: '로봇 장난감',   icon: 'assets/img/shop_robot.png',    price: 55 },
+  { key: 'cupcake',  name: '컵케이크',     icon: 'assets/img/shop_cupcake.png',  price: 28 },
+  { key: 'cookie',   name: '쿠키',         icon: 'assets/img/shop_cookie.png',   price: 16 },
+];
+const SHOP_ITEM_MAP = {};
+SHOP_ITEMS.forEach(it => { SHOP_ITEM_MAP[it.key] = it; });
+const SHOP_MIN_PRICE = Math.min(...SHOP_ITEMS.map(it => it.price));
 
 // ── 상태 ──
 const state = {
@@ -58,10 +75,12 @@ const state = {
   gauge: 0,
   tapsDone: 0,
   muted: false,
-  inventory: { snack: 0, drink: 0, toy: 0 },
+  inventory: {},   // key -> 개수
+  pileLog: [],     // 구매한 아이템 순서 기록 (쿠루미 옆 쌓기용)
   lastTs: 0,
   missionTransitioning: false,
 };
+SHOP_ITEMS.forEach(it => { state.inventory[it.key] = 0; });
 
 // ── DOM ──
 const el = (id) => document.getElementById(id);
@@ -78,6 +97,7 @@ const coinText = el('coinText');
 const shopCoinText = el('shopCoinText');
 const comboToast = el('comboToast');
 const kurumiImg = el('kurumiImg');
+const itemPile = el('itemPile');
 const missionIcon = el('missionIcon');
 const missionName = el('missionName');
 const missionGauge = el('missionGauge');
@@ -269,8 +289,11 @@ function startGame() {
   state.gauge = 0;
   state.tapsDone = 0;
   state.missionTransitioning = false;
+  SHOP_ITEMS.forEach(it => { state.inventory[it.key] = 0; });
+  state.pileLog = [];
   warnedLow = false;
 
+  itemPile.innerHTML = '';
   updateCoinsUI();
   updateTimerUI();
   showScreen('game');
@@ -283,16 +306,54 @@ function startGame() {
   }
 }
 
-function endGame() {
+function endGame(reason = 'timeout') {
   state.running = false;
   sounds.bgm.pause();
   playSound('gameOver');
   finalCoins.textContent = state.coins;
   finalMissions.textContent = state.missionsCompleted;
+
+  const overScreen = el('screenOver');
+  const overKurumi = el('overKurumi');
+  const overTitle = el('overTitle');
+  const overSub = el('overSub');
+
+  if (reason === 'moneySpent') {
+    overScreen.classList.add('shopping-complete');
+    overKurumi.src = 'assets/img/kurumi_happy.png';
+    overTitle.textContent = '코인을 다 썼어요!';
+    overSub.textContent = '쿠루미가 쇼핑을 완벽하게 끝냈어요 🎉';
+  } else {
+    overScreen.classList.remove('shopping-complete');
+    overKurumi.src = 'assets/img/kurumi_sad.png';
+    overTitle.textContent = '시간이 다 됐어요!';
+    overSub.textContent = '쿠루미가 미션을 다 못 끝냈어요 😢';
+  }
+
   showScreen('over');
 }
 
 // ── 상점 ──
+function renderShopGrid() {
+  const grid = el('shopGrid');
+  grid.innerHTML = SHOP_ITEMS.map(it => `
+    <div class="shop-item" data-item="${it.key}" data-price="${it.price}">
+      <img src="${it.icon}" alt="${it.name}">
+      <div class="shop-item-name">${it.name}</div>
+      <div class="shop-item-price"><img src="assets/img/coin.png" class="mini-coin">${it.price}</div>
+      <button class="btn-buy">구매하기</button>
+      <div class="owned-badge" id="owned-${it.key}">0개 보유</div>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('.btn-buy').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const key = e.target.closest('.shop-item').dataset.item;
+      buyItem(key);
+    });
+  });
+}
+
 function openShop() {
   playSound('button');
   state.running = false; // 타이머 정지
@@ -311,27 +372,43 @@ function closeShop() {
 }
 
 function renderShopOwned() {
-  Object.keys(SHOP_PRICES).forEach(key => {
-    el('owned-' + key).textContent = state.inventory[key] + '개 보유';
+  SHOP_ITEMS.forEach(it => {
+    const badge = el('owned-' + it.key);
+    if (badge) badge.textContent = state.inventory[it.key] + '개 보유';
   });
   document.querySelectorAll('.shop-item').forEach(itemEl => {
     const key = itemEl.dataset.item;
-    const price = SHOP_PRICES[key];
+    const price = SHOP_ITEM_MAP[key].price;
     const btn = itemEl.querySelector('.btn-buy');
     btn.disabled = state.coins < price;
   });
 }
 
+// 쿠루미 옆에 구매한 아이템을 쌓아 보여주기
+function addToPile(item) {
+  state.pileLog.push(item.key);
+  const img = document.createElement('img');
+  img.src = item.icon;
+  img.alt = item.name;
+  img.className = 'pile-icon';
+  itemPile.appendChild(img);
+}
+
 function buyItem(key) {
-  const price = SHOP_PRICES[key];
-  if (state.coins < price) return;
-  state.coins -= price;
+  const item = SHOP_ITEM_MAP[key];
+  if (!item || state.coins < item.price) return;
+  state.coins -= item.price;
   state.inventory[key]++;
   updateCoinsUI();
   renderShopOwned();
+  addToPile(item);
   playSound('purchase');
-  const names = { snack: '맛있는 과자', drink: '달콤한 음료', toy: '귀여운 장난감' };
-  el('shopMsg').textContent = `🎉 ${names[key]}을 구매했어요!`;
+  el('shopMsg').textContent = `🎉 ${item.name}을 구매했어요!`;
+
+  // 돈을 다 써서 더 이상 아무것도 살 수 없으면 바로 게임 오버
+  if (state.coins < SHOP_MIN_PRICE) {
+    setTimeout(() => endGame('moneySpent'), 400);
+  }
 }
 
 // ── 이벤트 바인딩 ──
@@ -344,12 +421,7 @@ el('btnShop').addEventListener('click', openShop);
 el('btnCloseShop').addEventListener('click', closeShop);
 el('btnResumeFromShop').addEventListener('click', closeShop);
 
-document.querySelectorAll('.btn-buy').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    const key = e.target.closest('.shop-item').dataset.item;
-    buyItem(key);
-  });
-});
+renderShopGrid();
 
 btnMute.addEventListener('click', () => {
   state.muted = !state.muted;

@@ -55,6 +55,7 @@
     <!-- 쿠루미 캐릭터 -->
     <div id="kurumiWrap" class="kurumi-wrap">
       <img id="kurumiImg" src="assets/img/kurumi_idle.png" alt="쿠루미" class="kurumi-char">
+      <div id="itemPile" class="item-pile"></div>
     </div>
 
     <!-- 미션 카드 -->
@@ -81,29 +82,7 @@
         <div class="shop-coin"><img src="assets/img/coin.png" alt="코인"><span id="shopCoinText">0</span></div>
         <button id="btnCloseShop" class="btn-close">✕</button>
       </div>
-      <div class="shop-grid">
-        <div class="shop-item" data-item="snack" data-price="20">
-          <img src="assets/img/shop_snack.png" alt="과자">
-          <div class="shop-item-name">맛있는 과자</div>
-          <div class="shop-item-price"><img src="assets/img/coin.png" class="mini-coin">20</div>
-          <button class="btn-buy">구매하기</button>
-          <div class="owned-badge" id="owned-snack">0개 보유</div>
-        </div>
-        <div class="shop-item" data-item="drink" data-price="15">
-          <img src="assets/img/shop_drink.png" alt="음료">
-          <div class="shop-item-name">달콤한 음료</div>
-          <div class="shop-item-price"><img src="assets/img/coin.png" class="mini-coin">15</div>
-          <button class="btn-buy">구매하기</button>
-          <div class="owned-badge" id="owned-drink">0개 보유</div>
-        </div>
-        <div class="shop-item" data-item="toy" data-price="50">
-          <img src="assets/img/shop_toy.png" alt="장난감">
-          <div class="shop-item-name">귀여운 장난감</div>
-          <div class="shop-item-price"><img src="assets/img/coin.png" class="mini-coin">50</div>
-          <button class="btn-buy">구매하기</button>
-          <div class="owned-badge" id="owned-toy">0개 보유</div>
-        </div>
-      </div>
+      <div class="shop-grid" id="shopGrid"><!-- JS로 12개 아이템 렌더링 --></div>
       <div id="shopMsg" class="shop-msg"></div>
       <button id="btnResumeFromShop" class="btn-main btn-shop-resume">▶ 게임 계속하기</button>
     </div>
@@ -112,9 +91,9 @@
   <!-- ─────────── 게임 오버 화면 ─────────── -->
   <section id="screenOver" class="screen">
     <div class="over-card">
-      <img class="kurumi-hero kurumi-sad" src="assets/img/kurumi_sad.png" alt="쿠루미">
-      <h2 class="over-title">시간이 다 됐어요!</h2>
-      <p class="over-sub">쿠루미가 미션을 다 못 끝냈어요 😢</p>
+      <img id="overKurumi" class="kurumi-hero kurumi-sad" src="assets/img/kurumi_sad.png" alt="쿠루미">
+      <h2 id="overTitle" class="over-title">시간이 다 됐어요!</h2>
+      <p id="overSub" class="over-sub">쿠루미가 미션을 다 못 끝냈어요 😢</p>
       <div class="over-stats">
         <div class="stat-box">
           <img src="assets/img/coin.png" class="mini-coin">
