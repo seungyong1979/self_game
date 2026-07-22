@@ -1,0 +1,366 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0d0d1a;
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  color: #fff;
+  touch-action: none;
+  user-select: none;
+}
+
+#gameCanvas {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #222;
+}
+
+.hidden { display: none !important; }
+
+/* ───────── HUD ───────── */
+#hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: max(10px, env(safe-area-inset-top)) 14px 8px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.hud-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hud-stage {
+  background: rgba(13,13,26,0.6);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 900;
+  font-size: 15px;
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+}
+
+.hud-label {
+  font-size: 10px;
+  color: #ffd166;
+  letter-spacing: 0.08em;
+  margin-right: 6px;
+}
+
+#stageNum { color: #fff; font-size: 17px; }
+#stageMax { color: #9098c0; font-size: 12px; }
+
+.hud-lives {
+  display: flex;
+  gap: 4px;
+  background: rgba(13,13,26,0.6);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 999px;
+  padding: 6px 10px;
+  backdrop-filter: blur(4px);
+}
+
+.life-icon {
+  font-size: 18px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+  transition: transform 0.2s;
+}
+
+.life-icon.lost {
+  opacity: 0.25;
+  filter: grayscale(1);
+}
+
+.icon-btn {
+  pointer-events: auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(13,13,26,0.6);
+  color: #fff;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.hud-timerbar {
+  margin-top: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.15);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+#timerFill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #34d399, #ffd166, #f5576c);
+  border-radius: 999px;
+  transition: width 0.15s linear;
+}
+
+/* ───────── Pause button (플로팅) ───────── */
+#pauseFloatBtn {
+  position: fixed;
+  top: max(64px, calc(env(safe-area-inset-top) + 56px));
+  right: 14px;
+  z-index: 20;
+}
+
+/* ───────── 토스트 ───────── */
+.toast {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  background: rgba(13,13,26,0.85);
+  border: 2px solid #ffd166;
+  border-radius: 20px;
+  padding: 18px 30px;
+  font-size: clamp(18px, 5vw, 26px);
+  font-weight: 900;
+  color: #ffd166;
+  text-align: center;
+  z-index: 30;
+  pointer-events: none;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* ───────── 공통 스크린 ───────── */
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 20%, rgba(124,92,252,0.25), transparent 60%), #0d0d1a;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.screen-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  padding: 30px 24px 34px;
+  background: rgba(20,20,38,0.75);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 26px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.game-emoji-row {
+  font-size: 44px;
+  margin-bottom: 6px;
+  letter-spacing: 4px;
+}
+
+.title {
+  font-size: clamp(2rem, 9vw, 2.8rem);
+  font-weight: 900;
+  line-height: 1.15;
+  background: linear-gradient(135deg, #ffd166 0%, #f5576c 50%, #7c5cfc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
+}
+
+.title.small {
+  font-size: clamp(1.4rem, 6vw, 1.9rem);
+  margin-bottom: 14px;
+}
+
+.story {
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: #d8daf0;
+  margin-bottom: 24px;
+}
+
+.story b { color: #ffd166; }
+
+.result-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #d8daf0;
+  margin-bottom: 22px;
+}
+
+#overStage {
+  font-size: 22px;
+  font-weight: 900;
+  color: #ffd166;
+}
+
+.btn-main {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  font-size: 18px;
+  font-weight: 900;
+  color: #fff;
+  background: linear-gradient(135deg, #7c5cfc, #f5576c);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(124,92,252,0.5);
+  margin-bottom: 12px;
+  font-family: inherit;
+  transition: transform 0.15s;
+}
+
+.btn-main:active { transform: scale(0.96); }
+
+.btn-sub {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #d8daf0;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 999px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  font-family: inherit;
+}
+
+.best-record {
+  font-size: 13px;
+  color: #9098c0;
+  margin-bottom: 18px;
+}
+
+.how-to {
+  font-size: 12.5px;
+  color: #9098c0;
+  line-height: 1.8;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 14px;
+  margin-bottom: 6px;
+}
+
+.how-to b { color: #a78bfa; }
+
+.home-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #9098c0;
+  text-decoration: none;
+}
+
+.home-link:hover { color: #fff; }
+
+/* ───────── 승리 화면 전용 ───────── */
+#screenVictory {
+  background: #1a3a1a;
+}
+
+.victory-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url('../assets/img/banana_bg.png');
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+
+.victory-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.55));
+}
+
+.victory-chars {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40%;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2vw;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.victory-chars img {
+  height: clamp(70px, 22vh, 170px);
+  max-width: 30vw;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));
+  animation: bounceIn 0.8s ease-out;
+}
+
+@keyframes bounceIn {
+  0% { transform: translateY(60px) scale(0.7); opacity: 0; }
+  60% { transform: translateY(-10px) scale(1.05); opacity: 1; }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.victory-inner {
+  margin-top: -6vh;
+}
+
+/* ───────── 화면 회전 힌트 ───────── */
+#orientationHint {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.6);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  z-index: 50;
+}
+
+/* ───────── 작은 화면 보정 ───────── */
+@media (max-width: 360px) {
+  .screen-inner { padding: 22px 16px 26px; }
+  .title { font-size: 1.8rem; }
+}
+
+@media (max-height: 560px) {
+  .game-emoji-row { font-size: 32px; margin-bottom: 2px; }
+  .title { font-size: 1.6rem; margin-bottom: 8px; }
+  .story { font-size: 13px; margin-bottom: 14px; }
+  .screen-inner { padding: 18px 20px; }
+}
