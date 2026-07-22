@@ -1,48 +1,64 @@
 // ══════════════════════════════════════════════
-// 손님들의 무한 편의점 - 쿠루미의 미션 대모험
+// 손님들의 무한 편의점 - 쿠루미의 알바 대모험
+// (편의점을 돌아다니며 알바 & 쇼핑을 스스로 선택하는 시뮬레이션)
 // ══════════════════════════════════════════════
 
 // ── 상수 ──
-const TIMER_MAX = 18;          // 타이머 바 최대치(초) - 이 이상은 쌓이지 않음
-const TIMER_START = 12;        // 시작 시간(초)
-const GAUGE_DECAY_PER_SEC = 7; // 미션 게이지 초당 감소량 (탭 안 하면 서서히 줄어듦)
-const MISSION_COOLDOWN = 9;    // 같은 미션이 다시 나오기까지 최소 대기(초)
-const WARN_TIME = 6;           // 경고색 전환 시점(초)
-const DANGER_TIME = 3;         // 위험색 전환 시점(초)
+const TIME_MAX = 90;           // 타이머 바 최대치(초) - 이 이상은 쌓이지 않음
+const TIME_START = 60;         // 시작 시간(초)
+const GAUGE_DECAY_PER_SEC = 9; // 알바 게이지 초당 감소량 (탭 안 하면 서서히 줄어듦)
+const WARN_TIME = 15;          // 경고색 전환 시점(초)
+const DANGER_TIME = 8;         // 위험색 전환 시점(초)
+const WALK_DURATION = 560;     // 쿠루미 이동 애니메이션 시간(ms) - CSS transition과 일치
 
-const MISSIONS = {
-  water: {
-    key: 'water',
-    name: '물 마시기 미션 💧',
-    icon: 'assets/img/item_water.png',
-    tapsNeeded: 6,
-    tapGain: 100 / 6,
-    reward: 8,
-    timeBonus: 5,
-    label: '벌컥벌컥!'
-  },
-  ramen: {
-    key: 'ramen',
-    name: '라면 먹기 미션 🍜',
-    icon: 'assets/img/item_ramen.png',
-    tapsNeeded: 10,
-    tapGain: 100 / 10,
-    reward: 15,
-    timeBonus: 9,
-    label: '후루룩!'
+// 알바(미니게임) 종류 - 각각 다른 위치에서 다른 돈을 벌 수 있어요
+const JOBS = {
+  stock: {
+    key: 'stock',
+    name: '상품 진열하기 📦',
+    icon: 'assets/img/job_stock.png',
+    tapsNeeded: 8,
+    tapGain: 100 / 8,
+    reward: 25,
+    timeBonus: 4,
+    cooldown: 10,
+    label: '차곡차곡!'
   },
   cola: {
     key: 'cola',
-    name: '콜라 마시기 미션 🥤',
+    name: '콜라 마시기 🥤',
     icon: 'assets/img/item_cola.png',
-    tapsNeeded: 8,
-    tapGain: 100 / 8,
-    reward: 12,
-    timeBonus: 7,
+    tapsNeeded: 6,
+    tapGain: 100 / 6,
+    reward: 10,
+    timeBonus: 3,
+    cooldown: 7,
     label: '꿀꺽꿀꺽!'
+  },
+  ramen: {
+    key: 'ramen',
+    name: '라면 먹기 🍜',
+    icon: 'assets/img/item_ramen.png',
+    tapsNeeded: 9,
+    tapGain: 100 / 9,
+    reward: 15,
+    timeBonus: 4,
+    cooldown: 8,
+    label: '후루룩!'
+  },
+  clean: {
+    key: 'clean',
+    name: '청소하기 🧹',
+    icon: 'assets/img/job_clean.png',
+    tapsNeeded: 7,
+    tapGain: 100 / 7,
+    reward: 20,
+    timeBonus: 4,
+    cooldown: 9,
+    label: '싹싹!'
   }
 };
-const MISSION_KEYS = Object.keys(MISSIONS);
+const JOB_KEYS = Object.keys(JOBS);
 
 // 상점 아이템 12종 (아이들이 좋아하는 간식/장난감 구성)
 const SHOP_ITEMS = [
@@ -65,20 +81,22 @@ const SHOP_MIN_PRICE = Math.min(...SHOP_ITEMS.map(it => it.price));
 
 // ── 상태 ──
 const state = {
-  screen: 'start',      // start | game | shop | over
+  screen: 'start',      // start | rules | game | shop | over
+  gameStarted: false,
+  rulesFromHelp: false,
   running: false,
-  timeLeft: TIMER_START,
+  moving: false,
+  timeLeft: TIME_START,
   coins: 0,
-  missionsCompleted: 0,
-  cooldowns: { water: 0, ramen: 0, cola: 0 },
-  currentMission: null,
+  jobsCompleted: 0,
+  cooldowns: { stock: 0, cola: 0, ramen: 0, clean: 0 },
+  currentJob: null,
   gauge: 0,
   tapsDone: 0,
   muted: false,
   inventory: {},   // key -> 개수
   pileLog: [],     // 구매한 아이템 순서 기록 (쿠루미 옆 쌓기용)
   lastTs: 0,
-  missionTransitioning: false,
 };
 SHOP_ITEMS.forEach(it => { state.inventory[it.key] = 0; });
 
@@ -86,6 +104,7 @@ SHOP_ITEMS.forEach(it => { state.inventory[it.key] = 0; });
 const el = (id) => document.getElementById(id);
 const screens = {
   start: el('screenStart'),
+  rules: el('screenRules'),
   game: el('screenGame'),
   shop: el('screenShop'),
   over: el('screenOver'),
@@ -93,16 +112,20 @@ const screens = {
 
 const timerBar = el('timerBar');
 const timerText = el('timerText');
+const shopTimerText = el('shopTimerText');
 const coinText = el('coinText');
 const shopCoinText = el('shopCoinText');
 const comboToast = el('comboToast');
+const mapArea = el('mapArea');
+const kurumiWrap = el('kurumiWrap');
 const kurumiImg = el('kurumiImg');
 const itemPile = el('itemPile');
-const missionIcon = el('missionIcon');
-const missionName = el('missionName');
-const missionGauge = el('missionGauge');
-const btnTap = el('btnTap');
-const btnTapLabel = el('btnTapLabel');
+const jobPanel = el('jobPanel');
+const jobIcon = el('jobIcon');
+const jobName = el('jobName');
+const jobGauge = el('jobGauge');
+const btnJobTap = el('btnJobTap');
+const btnJobTapLabel = el('btnJobTapLabel');
 const finalCoins = el('finalCoins');
 const finalMissions = el('finalMissions');
 const btnMute = el('btnMute');
@@ -134,64 +157,89 @@ function playSound(name, { restart = true } = {}) {
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.remove('active'));
   if (name === 'shop') {
-    // 상점은 게임 화면 위에 오버레이로 뜸
+    // 상점은 게임 화면 위에 오버레이로 뜸 (시간은 계속 흐름!)
     screens.game.classList.add('active');
     screens.shop.classList.add('active');
+  } else if (name === 'rules' && state.rulesFromHelp) {
+    // 게임 중 도움말 보기도 오버레이로 표시
+    screens.game.classList.add('active');
+    screens.rules.classList.add('active');
   } else {
     screens[name].classList.add('active');
   }
   state.screen = name;
 }
 
-// ── 미션 선택 로직 ──
-function pickNextMission() {
-  // 쿨다운 아닌 것들 중 랜덤 선택
-  const available = MISSION_KEYS.filter(k => state.cooldowns[k] <= 0);
-  let pool = available.length > 0 ? available : MISSION_KEYS;
-  // 직전 미션과 같은 것은 가능하면 피함
-  if (pool.length > 1 && state.currentMission) {
-    const filtered = pool.filter(k => k !== state.currentMission.key);
-    if (filtered.length > 0) pool = filtered;
-  }
-  const key = pool[Math.floor(Math.random() * pool.length)];
-  return MISSIONS[key];
+// ── 쿠루미 이동 ──
+function moveKurumiTo(zoneEl, onArrive) {
+  state.moving = true;
+  kurumiImg.classList.add('walking');
+  updateZonesUI();
+
+  const mapRect = mapArea.getBoundingClientRect();
+  const zoneRect = zoneEl.getBoundingClientRect();
+  const left = zoneRect.left - mapRect.left + zoneRect.width / 2;
+  const top = zoneRect.top - mapRect.top + zoneRect.height + 22;
+  kurumiWrap.style.left = left + 'px';
+  kurumiWrap.style.top = top + 'px';
+
+  setTimeout(() => {
+    state.moving = false;
+    kurumiImg.classList.remove('walking');
+    updateZonesUI();
+    if (onArrive) onArrive();
+  }, WALK_DURATION);
 }
 
-function startMission(mission) {
-  state.currentMission = mission;
+function centerKurumi() {
+  const mapRect = mapArea.getBoundingClientRect();
+  kurumiWrap.style.left = (mapRect.width / 2) + 'px';
+  kurumiWrap.style.top = (mapRect.height / 2) + 'px';
+}
+
+// ── 알바(미니게임) ──
+function startJob(job) {
+  state.currentJob = job;
   state.gauge = 0;
   state.tapsDone = 0;
-  missionIcon.src = mission.icon;
-  missionName.textContent = mission.name;
-  btnTapLabel.textContent = mission.label;
-  missionGauge.style.width = '0%';
-  kurumiImg.className = 'kurumi-char';
+  jobIcon.src = job.icon;
+  jobName.textContent = job.name;
+  btnJobTapLabel.textContent = job.label;
+  jobGauge.style.width = '0%';
+  jobPanel.classList.remove('hidden');
 }
 
-function completeMission() {
-  const m = state.currentMission;
-  state.missionsCompleted++;
-  state.coins += m.reward;
-  state.timeLeft = Math.min(TIMER_MAX, state.timeLeft + m.timeBonus);
-  state.cooldowns[m.key] = MISSION_COOLDOWN;
+function cancelJob() {
+  state.currentJob = null;
+  jobPanel.classList.add('hidden');
+  updateZonesUI();
+}
+
+function completeJob() {
+  const j = state.currentJob;
+  if (!j) return; // 이미 완료 처리된 알바면 무시 (중복 보상 방지)
+  state.currentJob = null; // 즉시 null 처리 → 이후 탭은 새 알바로 취급되지 않음(중복 완료 방지)
+
+  state.jobsCompleted++;
+  state.coins += j.reward;
+  state.timeLeft = Math.min(TIME_MAX, state.timeLeft + j.timeBonus);
+  state.cooldowns[j.key] = j.cooldown;
 
   updateCoinsUI();
   playSound('success');
   setTimeout(() => playSound('coin'), 180);
 
-  showComboToast(`✨ 미션 성공! +${m.timeBonus}초 · +${m.reward}코인`);
+  showComboToast(`✨ 알바 성공! +${j.timeBonus}초 · +${j.reward}원`);
 
   kurumiImg.src = 'assets/img/kurumi_happy.png';
-  kurumiImg.className = 'kurumi-char pop';
+  kurumiImg.classList.add('pop');
 
-  state.missionTransitioning = true;
-  btnTap.disabled = true;
   setTimeout(() => {
+    jobPanel.classList.add('hidden');
     kurumiImg.src = 'assets/img/kurumi_idle.png';
-    startMission(pickNextMission());
-    btnTap.disabled = false;
-    state.missionTransitioning = false;
-  }, 850);
+    kurumiImg.classList.remove('pop');
+    updateZonesUI();
+  }, 750);
 }
 
 let toastTimer = null;
@@ -202,15 +250,14 @@ function showComboToast(text) {
   toastTimer = setTimeout(() => comboToast.classList.remove('show'), 1400);
 }
 
-// ── 탭 처리 ──
+// ── 탭 처리 (알바 중일 때만) ──
 function handleTap(e) {
   if (e) e.preventDefault();
-  if (!state.running || state.missionTransitioning || state.screen !== 'game') return;
-  const m = state.currentMission;
-  if (!m) return;
+  if (!state.running || !state.currentJob || state.screen !== 'game') return;
+  const j = state.currentJob;
   state.tapsDone++;
-  state.gauge = Math.min(100, state.gauge + m.tapGain);
-  missionGauge.style.width = state.gauge + '%';
+  state.gauge = Math.min(100, state.gauge + j.tapGain);
+  jobGauge.style.width = state.gauge + '%';
   playSound('tap', { restart: true });
 
   kurumiImg.classList.remove('pop');
@@ -220,7 +267,25 @@ function handleTap(e) {
   });
 
   if (state.gauge >= 100) {
-    completeMission();
+    completeJob();
+  }
+}
+
+// ── 구역(알바/상점) 클릭 처리 ──
+function onZoneClick(zoneEl) {
+  if (!state.running || state.moving || state.currentJob) return;
+  const jobKey = zoneEl.dataset.job;
+  if (jobKey) {
+    if (state.cooldowns[jobKey] > 0) {
+      showComboToast('아직 조금 쉬어야 해요! ⏳');
+      return;
+    }
+    playSound('button');
+    moveKurumiTo(zoneEl, () => startJob(JOBS[jobKey]));
+  } else {
+    // 상점 구역
+    playSound('button');
+    moveKurumiTo(zoneEl, () => openShop());
   }
 }
 
@@ -231,12 +296,36 @@ function updateCoinsUI() {
 }
 
 function updateTimerUI() {
-  const pct = Math.max(0, Math.min(100, (state.timeLeft / TIMER_MAX) * 100));
+  const pct = Math.max(0, Math.min(100, (state.timeLeft / TIME_MAX) * 100));
   timerBar.style.width = pct + '%';
-  timerText.textContent = Math.ceil(state.timeLeft);
+  const secs = Math.ceil(state.timeLeft);
+  timerText.textContent = secs;
+  shopTimerText.textContent = secs;
   timerBar.classList.remove('warn', 'danger');
   if (state.timeLeft <= DANGER_TIME) timerBar.classList.add('danger');
   else if (state.timeLeft <= WARN_TIME) timerBar.classList.add('warn');
+}
+
+function updateZonesUI() {
+  JOB_KEYS.forEach(key => {
+    const zoneEl = document.querySelector(`.zone[data-job="${key}"]`);
+    const badge = el('cd-' + key);
+    const cd = state.cooldowns[key];
+    if (cd > 0) {
+      badge.textContent = Math.ceil(cd) + 's';
+      badge.classList.add('show');
+      zoneEl.classList.add('disabled');
+      zoneEl.classList.remove('reachable');
+    } else {
+      badge.classList.remove('show');
+      zoneEl.classList.remove('disabled');
+      if (!state.currentJob && !state.moving) zoneEl.classList.add('reachable');
+      else zoneEl.classList.remove('reachable');
+    }
+  });
+  const shopZone = el('zoneShop');
+  if (!state.currentJob && !state.moving) shopZone.classList.add('reachable');
+  else shopZone.classList.remove('reachable');
 }
 
 // ── 게임 루프 ──
@@ -246,19 +335,22 @@ function loop(ts) {
   const dt = Math.min(0.05, (ts - state.lastTs) / 1000);
   state.lastTs = ts;
 
-  if (state.running && state.screen === 'game') {
-    // 타이머 감소
+  if (state.running && (state.screen === 'game' || state.screen === 'shop')) {
+    // 타이머 감소 (알바 중이든, 걷는 중이든, 쇼핑 중이든 항상 흘러감!)
     state.timeLeft -= dt;
 
     // 쿨다운 감소
-    MISSION_KEYS.forEach(k => {
-      if (state.cooldowns[k] > 0) state.cooldowns[k] = Math.max(0, state.cooldowns[k] - dt);
+    JOB_KEYS.forEach(k => {
+      if (state.cooldowns[k] > 0) {
+        state.cooldowns[k] = Math.max(0, state.cooldowns[k] - dt);
+      }
     });
+    if (state.screen === 'game') updateZonesUI();
 
-    // 미션 게이지 서서히 감소 (탭 안 하면 줄어듦)
-    if (!state.missionTransitioning && state.gauge > 0) {
+    // 알바 게이지 서서히 감소 (탭 안 하면 줄어듦)
+    if (state.currentJob && state.gauge > 0) {
       state.gauge = Math.max(0, state.gauge - GAUGE_DECAY_PER_SEC * dt);
-      missionGauge.style.width = state.gauge + '%';
+      jobGauge.style.width = state.gauge + '%';
     }
 
     updateTimerUI();
@@ -272,7 +364,7 @@ function loop(ts) {
     if (state.timeLeft <= 0) {
       state.timeLeft = 0;
       updateTimerUI();
-      endGame();
+      endGame('timeout');
     }
   }
 
@@ -281,24 +373,30 @@ function loop(ts) {
 
 // ── 게임 시작/종료 ──
 function startGame() {
+  state.gameStarted = true;
   state.running = true;
-  state.timeLeft = TIMER_START;
+  state.timeLeft = TIME_START;
   state.coins = 0;
-  state.missionsCompleted = 0;
-  state.cooldowns = { water: 0, ramen: 0, cola: 0 };
+  state.jobsCompleted = 0;
+  state.cooldowns = { stock: 0, cola: 0, ramen: 0, clean: 0 };
   state.gauge = 0;
   state.tapsDone = 0;
-  state.missionTransitioning = false;
+  state.currentJob = null;
+  state.moving = false;
   SHOP_ITEMS.forEach(it => { state.inventory[it.key] = 0; });
   state.pileLog = [];
   warnedLow = false;
 
   itemPile.innerHTML = '';
+  jobPanel.classList.add('hidden');
+  kurumiImg.src = 'assets/img/kurumi_idle.png';
   updateCoinsUI();
   updateTimerUI();
   showScreen('game');
-  startMission(pickNextMission());
-  btnTap.disabled = false;
+  requestAnimationFrame(() => {
+    centerKurumi();
+    updateZonesUI();
+  });
 
   if (!state.muted) {
     sounds.bgm.currentTime = 0;
@@ -311,23 +409,26 @@ function endGame(reason = 'timeout') {
   sounds.bgm.pause();
   playSound('gameOver');
   finalCoins.textContent = state.coins;
-  finalMissions.textContent = state.missionsCompleted;
+  finalMissions.textContent = state.jobsCompleted;
 
   const overScreen = el('screenOver');
   const overKurumi = el('overKurumi');
   const overTitle = el('overTitle');
   const overSub = el('overSub');
+  const overTip = el('overTip');
 
   if (reason === 'moneySpent') {
     overScreen.classList.add('shopping-complete');
     overKurumi.src = 'assets/img/kurumi_happy.png';
     overTitle.textContent = '코인을 다 썼어요!';
     overSub.textContent = '쿠루미가 쇼핑을 완벽하게 끝냈어요 🎉';
+    overTip.textContent = '💡 다음엔 알바를 더 많이 해서 시간이 남았을 때 쇼핑해봐요!';
   } else {
     overScreen.classList.remove('shopping-complete');
     overKurumi.src = 'assets/img/kurumi_sad.png';
     overTitle.textContent = '시간이 다 됐어요!';
-    overSub.textContent = '쿠루미가 미션을 다 못 끝냈어요 😢';
+    overSub.textContent = '오늘 알바는 여기까지예요 😢';
+    overTip.textContent = '💡 알바와 쇼핑을 균형있게 하면 더 많은 걸 살 수 있어요!';
   }
 
   showScreen('over');
@@ -355,9 +456,6 @@ function renderShopGrid() {
 }
 
 function openShop() {
-  playSound('button');
-  state.running = false; // 타이머 정지
-  sounds.bgm.pause();
   updateCoinsUI();
   renderShopOwned();
   el('shopMsg').textContent = '';
@@ -367,8 +465,7 @@ function openShop() {
 function closeShop() {
   playSound('button');
   showScreen('game');
-  state.running = true;
-  if (!state.muted) sounds.bgm.play().catch(() => {});
+  updateZonesUI();
 }
 
 function renderShopOwned() {
@@ -395,6 +492,7 @@ function addToPile(item) {
 }
 
 function buyItem(key) {
+  if (!state.running) return;
   const item = SHOP_ITEM_MAP[key];
   if (!item || state.coins < item.price) return;
   state.coins -= item.price;
@@ -411,13 +509,39 @@ function buyItem(key) {
   }
 }
 
-// ── 이벤트 바인딩 ──
-btnTap.addEventListener('pointerdown', handleTap, { passive: false });
+// ── 게임 방법 안내 ──
+function openRules(fromHelp) {
+  state.rulesFromHelp = !!fromHelp;
+  if (fromHelp) {
+    state.running = false;
+    sounds.bgm.pause();
+  }
+  el('btnRulesGo').textContent = fromHelp ? '게임으로 돌아가기 🎮' : '알았어요! 시작할게요 🎮';
+  showScreen('rules');
+}
 
-el('btnStart').addEventListener('click', () => { playSound('button'); startGame(); });
+// ── 이벤트 바인딩 ──
+btnJobTap.addEventListener('pointerdown', handleTap, { passive: false });
+
+el('btnStart').addEventListener('click', () => { playSound('button'); openRules(false); });
+el('btnRulesGo').addEventListener('click', () => {
+  playSound('button');
+  if (state.rulesFromHelp && state.gameStarted) {
+    showScreen('game');
+    state.running = true;
+    if (!state.muted) sounds.bgm.play().catch(() => {});
+    updateZonesUI();
+  } else {
+    startGame();
+  }
+});
 el('btnRetry').addEventListener('click', () => { playSound('button'); startGame(); });
 
-el('btnShop').addEventListener('click', openShop);
+document.querySelectorAll('.zone').forEach(zoneEl => {
+  zoneEl.addEventListener('click', () => onZoneClick(zoneEl));
+});
+
+el('btnHelp').addEventListener('click', () => { playSound('button'); openRules(true); });
 el('btnCloseShop').addEventListener('click', closeShop);
 el('btnResumeFromShop').addEventListener('click', closeShop);
 
@@ -435,6 +559,13 @@ window.addEventListener('keydown', (e) => {
   if (e.key === ' ' || e.code === 'Space') {
     e.preventDefault();
     handleTap();
+  }
+});
+
+// 화면 크기 변경 시 쿠루미 위치 재조정 (알바/쇼핑 중이 아닐 때만)
+window.addEventListener('resize', () => {
+  if (state.screen === 'game' && !state.currentJob && !state.moving) {
+    centerKurumi();
   }
 });
 
