@@ -12,6 +12,8 @@
   const INVULN_TIME = 1.1;         // 피격 후 무적 시간(초)
   const STORAGE_BEST = 'elephantDodge_best';
   const STORAGE_MUTE = 'elephantDodge_muted';
+  const HEART_TTL = 7.5;           // 하트 아이템이 화면에 남아있는 시간(초)
+  const HEART_R = 22;              // 하트 아이템 판정 반경
 
   /* ---------- 캔버스 ---------- */
   const canvas = document.getElementById('gameCanvas');
@@ -62,6 +64,7 @@
   makeAudio('victory', 'victory_fanfare.mp3', { volume: 0.85 });
   makeAudio('click', 'button_click.mp3', { volume: 0.6 });
   makeAudio('over', 'game_over.mp3', { volume: 0.7 });
+  makeAudio('heart', 'heart_get.mp3', { volume: 0.8 });
 
   let muted = localStorage.getItem(STORAGE_MUTE) === '1';
 
@@ -138,7 +141,7 @@
     vx: 0, vy: 0,
     r: 30,
     angle: 0,
-    speed: 320,        // px/s (키보드 최대속도)
+    speed: 460,        // px/s (키보드 최대속도) - 기존 320 → 460으로 상향, 고스테이지에서도 회피 가능하도록
     invuln: 0,
   };
 
@@ -235,6 +238,78 @@
   let lastTs = 0;
   let bgDim = 0; // 배경 어두워지는 정도(위험도)
 
+  /* ---------- 하트 아이템(생명 +1) ---------- */
+  let hearts = [];
+
+  function trySpawnHeart(stage) {
+    // 생명이 이미 가득 차 있으면 등장 안 함
+    if (lives >= MAX_LIVES) return;
+    // 스테이지 3 이후부터 등장, 스테이지가 올라갈수록 등장 확률 소폭 상승
+    if (stage < 3) return;
+    const chance = clamp(0.28 + stage * 0.002, 0.28, 0.42);
+    if (Math.random() > chance) return;
+
+    const margin = 70;
+    hearts.push({
+      x: rand(margin, W - margin),
+      y: rand(H * 0.18, H * 0.55), // 플레이어 시작 위치보다 위쪽에 배치해 이동 유도
+      r: HEART_R,
+      ttl: HEART_TTL,
+      bob: rand(0, Math.PI * 2),
+    });
+  }
+
+  function updateHearts(dt) {
+    for (let i = hearts.length - 1; i >= 0; i--) {
+      const h = hearts[i];
+      h.bob += dt * 5;
+      h.ttl -= dt;
+      if (h.ttl <= 0) {
+        hearts.splice(i, 1);
+        continue;
+      }
+      const d = dist(player.x, player.y, h.x, h.y);
+      if (d < player.r * 0.72 + h.r * 0.75) {
+        hearts.splice(i, 1);
+        gainLife();
+      }
+    }
+  }
+
+  function gainLife() {
+    if (lives < MAX_LIVES) {
+      lives++;
+      renderLives();
+      toast('❤️ 생명이 +1 늘었어요!');
+    } else {
+      toast('❤️ 이미 생명이 가득해요!');
+    }
+    playSfx('heart');
+  }
+
+  function drawHearts() {
+    for (const h of hearts) {
+      const bobY = Math.sin(h.bob) * 5;
+      // 사라지기 0.5초 전부터 깜빡임으로 경고
+      const blinking = h.ttl < 1.5 && Math.floor(h.ttl * 8) % 2 === 0;
+      if (blinking) continue;
+      ctx.save();
+      ctx.translate(h.x, h.y + bobY);
+      const size = h.r * 2.1;
+      const img = images.heart;
+      if (img && img.complete && img.naturalWidth) {
+        ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      } else {
+        ctx.fillStyle = '#ff4d6d';
+        ctx.font = `${size}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('❤️', 0, 0);
+      }
+      ctx.restore();
+    }
+  }
+
   function bestStage() {
     return parseInt(localStorage.getItem(STORAGE_BEST) || '1', 10);
   }
@@ -261,6 +336,7 @@
     stageTotalTime = cfg.boss ? BOSS_STAGE_TIME : NORMAL_STAGE_TIME;
     stageTimeLeft = stageTotalTime;
     bgDim = 0;
+    hearts = [];
     renderLives();
     stageNumEl.textContent = stage;
     state = 'playing';
@@ -285,6 +361,7 @@
     stageNumEl.textContent = stage;
     bgDim = clamp(stage / MAX_STAGE, 0, 0.55);
     if (stage % 10 === 0 || cfg.boss) playSfx('roar');
+    trySpawnHeart(stage);
   }
 
   function loseLife() {
@@ -357,11 +434,11 @@
       const dx = pointerX - player.x;
       const dy = pointerY - player.y;
       const d = Math.hypot(dx, dy);
-      const follow = 9; // 따라오는 정도
+      const follow = 12; // 따라오는 정도 (기존 9 → 12, 더 민첩하게 반응)
       if (d > 1) {
         player.vx = dx * follow * dt * 6;
         player.vy = dy * follow * dt * 6;
-        const maxV = 480;
+        const maxV = 640; // 기존 480 → 640, 코끼리 회피 여유 확보
         const vlen = Math.hypot(player.vx, player.vy);
         if (vlen > maxV) {
           player.vx = player.vx / vlen * maxV;
@@ -458,6 +535,7 @@
   function update(dt) {
     updatePlayer(dt);
     updateElephants(dt);
+    updateHearts(dt);
 
     stageTimeLeft -= dt;
     timerFill.style.width = clamp(stageTimeLeft / stageTotalTime, 0, 1) * 100 + '%';
@@ -544,6 +622,7 @@
   function render() {
     ctx.clearRect(0, 0, W, H);
     drawBackground();
+    drawHearts();
     drawElephants();
     drawPlayer();
   }
@@ -602,6 +681,7 @@
     loadImage('happy', 'happy_elephant.png'),
     loadImage('zoo', 'zoo_bg.png'),
     loadImage('banana', 'banana_bg.png'),
+    loadImage('heart', 'heart.png'),
   ]).then(() => {
     startBtn.disabled = false;
   });
