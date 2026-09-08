@@ -1,0 +1,608 @@
+/* ══════════════════════════════════════
+   우리 가족 할리갈리 - 스타일시트
+   ══════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+
+:root {
+  --bg:        #0d0d1a;
+  --bg2:       #13132a;
+  --card-bg:   #1a1a30;
+  --card-border: rgba(255,255,255,0.08);
+  --text:      #e8eaf6;
+  --text-muted:#9098c0;
+  --accent:    #ff6b6b;
+  --accent2:   #ffd166;
+  --glow:      rgba(255,107,107,0.35);
+
+  --p-bada: #4facfe;
+  --p-mom:  #ff9ecd;
+  --p-yuha: #f5576c;
+  --p-riha: #7c5cfc;
+}
+
+* , *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.hidden { display: none !important; }
+
+/* ─── 배경 장식 ─── */
+.bg-deco {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255,107,107,0.10) 0%, transparent 45%),
+    radial-gradient(circle at 85% 15%, rgba(124,92,252,0.12) 0%, transparent 45%),
+    radial-gradient(circle at 50% 90%, rgba(255,209,102,0.08) 0%, transparent 50%),
+    linear-gradient(180deg, #0d0d1a 0%, #13132a 100%);
+}
+
+/* ─── 상단 바 ─── */
+.topbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: rgba(13,13,26,0.85);
+  border-bottom: 1px solid var(--card-border);
+  position: sticky;
+  top: 0;
+  backdrop-filter: blur(8px);
+}
+
+.back-link {
+  color: var(--text-muted);
+  font-size: 14px;
+  text-decoration: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.back-link:hover { color: var(--text); }
+
+.topbar-title {
+  font-size: 16px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ff9ecd 0%, #ffd166 50%, #7c5cfc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+}
+
+.topbar-actions { display: flex; gap: 8px; }
+
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: 0.2s;
+}
+.icon-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.08); }
+
+/* ─── 공통 화면 ─── */
+.screen {
+  position: relative;
+  z-index: 1;
+  min-height: calc(100vh - 65px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+/* ═══════════ 셋업 화면 ═══════════ */
+.setup-card {
+  max-width: 480px;
+  width: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+.setup-bell {
+  font-size: 56px;
+  margin-bottom: 8px;
+  animation: bellSwing 2s ease-in-out infinite;
+}
+@keyframes bellSwing {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-12deg); }
+  75% { transform: rotate(12deg); }
+}
+
+.setup-card h1 {
+  font-size: 26px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #ff9ecd 0%, #ffd166 50%, #7c5cfc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.setup-sub {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 26px;
+}
+
+.setup-label {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: var(--text);
+}
+
+.player-select {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.player-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  background: rgba(255,255,255,0.04);
+  border: 2px solid var(--card-border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: 0.2s;
+  color: var(--text);
+}
+.player-chip img {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255,255,255,0.15);
+  transition: 0.2s;
+}
+.player-chip span { font-size: 14px; font-weight: 700; }
+
+.player-chip:hover { background: rgba(255,255,255,0.08); }
+.player-chip.selected {
+  border-color: var(--accent2);
+  background: rgba(255,209,102,0.12);
+}
+.player-chip.selected img {
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 4px rgba(255,209,102,0.25);
+}
+
+.setup-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  min-height: 18px;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ff6b6b, #ffd166);
+  color: #1a1a30;
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 8px 24px rgba(255,107,107,0.3);
+}
+.btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(255,107,107,0.4); }
+.btn-primary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-ghost {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: 0.2s;
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.12); }
+
+/* ═══════════ 게임 화면 ═══════════ */
+.game-screen {
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-top: 16px;
+}
+
+.game-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 12px 18px;
+}
+
+.turn-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 15px;
+}
+.turn-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-block;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid var(--accent2);
+  flex-shrink: 0;
+}
+
+.message-log {
+  flex: 1;
+  min-width: 160px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent2);
+  min-height: 20px;
+}
+
+/* 플레이어 그리드: 2~4명에 따라 반응형 */
+.player-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, 1fr);
+}
+.player-grid.n2 { grid-template-columns: repeat(2, 1fr); }
+.player-grid.n3 { grid-template-columns: repeat(3, 1fr); }
+.player-grid.n4 { grid-template-columns: repeat(2, 1fr); }
+
+@media (max-width: 720px) {
+  .player-grid.n3, .player-grid.n4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .player-grid { grid-template-columns: 1fr !important; }
+}
+
+.player-panel {
+  background: var(--card-bg);
+  border: 2px solid var(--card-border);
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  transition: 0.2s;
+}
+
+.player-panel.active-turn {
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 3px rgba(255,209,102,0.2), 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.player-panel.out {
+  opacity: 0.4;
+}
+
+.player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.player-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+  font-size: 15px;
+}
+.player-name img {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+.player-stats {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 10px;
+}
+.player-stats b { color: var(--text); }
+
+.card-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 150px;
+}
+
+/* 카드 뒤집기 버튼(카드 뭉치) */
+.deck-pile {
+  width: 90px; height: 126px;
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+  perspective: 600px;
+}
+.deck-pile:active { transform: scale(0.95); }
+.deck-pile.disabled { cursor: not-allowed; opacity: 0.5; }
+
+.deck-pile-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7c5cfc, #ff6b6b);
+  border: 3px solid rgba(255,255,255,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+}
+.deck-pile-face.empty {
+  background: rgba(255,255,255,0.05);
+  border: 3px dashed var(--card-border);
+}
+
+.deck-count-badge {
+  position: absolute;
+  bottom: -8px; right: -8px;
+  background: #1a1a30;
+  border: 2px solid var(--accent2);
+  border-radius: 50%;
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--accent2);
+}
+
+/* 공개된 카드 */
+.revealed-card {
+  width: 100px; height: 140px;
+  border-radius: 12px;
+  background: #fff;
+  border: 3px solid rgba(255,255,255,0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  position: relative;
+  animation: cardPop 0.3s ease-out;
+}
+@keyframes cardPop {
+  0% { transform: scale(0.5) rotate(-8deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.revealed-card .face-count-count {
+  display: grid;
+  gap: 3px;
+  padding: 6px;
+  width: 100%;
+  height: 100%;
+}
+.face-count-count img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+/* 레이아웃별 개수 */
+.face-count-count.cnt-1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+.face-count-count.cnt-2 { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+.face-count-count.cnt-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.face-count-count.cnt-3 img:nth-child(1) { grid-column: 1 / 3; }
+.face-count-count.cnt-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.face-count-count.cnt-5 { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.face-count-count.cnt-5 img:nth-child(1) { grid-column: 1 / 4; }
+
+.empty-slot {
+  width: 100px; height: 140px;
+  border-radius: 12px;
+  border: 2px dashed rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* 종치기 버튼 */
+.bell-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffd166, #ff9a3c);
+  color: #1a1a30;
+  font-weight: 900;
+  font-size: 18px;
+  cursor: pointer;
+  transition: 0.12s;
+  box-shadow: 0 6px 18px rgba(255,209,102,0.3);
+}
+.bell-btn:hover { transform: scale(1.03); }
+.bell-btn:active { transform: scale(0.95); }
+
+.deck-info {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* 벨 눌렀을 때 화면 플래시 */
+.flash-correct, .flash-wrong {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+}
+.flash-correct { background: rgba(52,211,153,0.25); }
+.flash-wrong   { background: rgba(244,63,94,0.25); }
+.flash-correct.show, .flash-wrong.show {
+  animation: flashAnim 0.5s ease-out;
+}
+@keyframes flashAnim {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ═══════════ 결과 화면 ═══════════ */
+.result-card {
+  max-width: 480px;
+  width: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  padding: 36px 26px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+.result-trophy {
+  font-size: 64px;
+  margin-bottom: 8px;
+}
+.result-card h1 {
+  font-size: 24px;
+  font-weight: 900;
+  margin-bottom: 22px;
+  background: linear-gradient(135deg, #ffd166, #ff6b6b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+.result-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+  border: 1px solid var(--card-border);
+}
+.result-row.winner {
+  border-color: var(--accent2);
+  background: rgba(255,209,102,0.1);
+}
+.result-row img {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+.result-row .rname { flex: 1; text-align: left; font-weight: 700; }
+.result-row .rscore { font-weight: 900; font-size: 16px; color: var(--accent2); }
+.result-row .rrank { font-size: 18px; width: 26px; text-align: center; }
+
+.result-actions {
+  display: flex;
+  gap: 10px;
+}
+.result-actions .btn-primary,
+.result-actions .btn-ghost { flex: 1; }
+
+/* ═══════════ 규칙 모달 ═══════════ */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-box {
+  max-width: 480px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  padding: 28px 22px;
+  position: relative;
+}
+.modal-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+}
+.modal-box h2 {
+  font-size: 20px;
+  font-weight: 900;
+  margin-bottom: 18px;
+}
+.rules-list {
+  padding-left: 20px;
+  margin-bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.rules-list b { color: var(--text); }

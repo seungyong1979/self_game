@@ -128,6 +128,7 @@
 
     .author-chip.yuha .avatar  { background: linear-gradient(135deg,#f093fb,#f5576c); }
     .author-chip.riha .avatar  { background: linear-gradient(135deg,#4facfe,#00f2fe); }
+    .author-chip.bada .avatar  { background: linear-gradient(135deg,#7c5cfc,#ffd166); }
 
     /* ─── 필터 탭 ─── */
     .filter-bar {
@@ -203,6 +204,7 @@
     .game-card[data-theme="rose"]:hover   { box-shadow: 0 20px 50px rgba(251,113,133,0.3),0 0 0 1px rgba(251,113,133,0.4); border-color: rgba(251,113,133,0.5); }
     .game-card[data-theme="lime"]:hover   { box-shadow: 0 20px 50px rgba(132,204,22,0.3), 0 0 0 1px rgba(132,204,22,0.4);  border-color: rgba(132,204,22,0.5); }
     .game-card[data-theme="violet"]:hover { box-shadow: 0 20px 50px rgba(139,92,246,0.3), 0 0 0 1px rgba(139,92,246,0.4); border-color: rgba(139,92,246,0.5); }
+    .game-card[data-theme="gold"]:hover    { box-shadow: 0 20px 50px rgba(255,209,102,0.35), 0 0 0 1px rgba(255,209,102,0.45); border-color: rgba(255,209,102,0.55); }
 
     /* ─── 썸네일 ─── */
     .thumbnail {
@@ -226,6 +228,7 @@
     .thumb-rose   { background: linear-gradient(135deg, #3b0a1f 0%, #9f1239 50%, #fb7185 100%); }
     .thumb-lime   { background: linear-gradient(135deg, #1a2e00 0%, #3d6b00 50%, #84cc16 100%); }
     .thumb-violet { background: linear-gradient(135deg, #1a0a2e 0%, #4c1d95 50%, #7c3aed 100%); }
+    .thumb-gold   { background: linear-gradient(135deg, #2d1b00 0%, #7c5cfc 55%, #ffd166 100%); }
 
     /* 썸네일 이모지/배경 장식 */
     .thumb-bg-emoji {
@@ -324,6 +327,7 @@
     .tag-rose   { background: rgba(251,113,133,0.15); border-color: rgba(251,113,133,0.3); color: #fda4af; }
     .tag-lime   { background: rgba(132,204,22,0.15); border-color: rgba(132,204,22,0.3); color: #bef264; }
     .tag-violet { background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.3); color: #c4b5fd; }
+    .tag-gold   { background: rgba(255,209,102,0.15); border-color: rgba(255,209,102,0.35); color: #ffd166; }
 
     /* ─── 카드 푸터 ─── */
     .card-footer {
@@ -354,6 +358,7 @@
 
     .maker-yuha { background: linear-gradient(135deg,#f093fb,#f5576c); }
     .maker-riha { background: linear-gradient(135deg,#4facfe,#00f2fe); }
+    .maker-bada { background: linear-gradient(135deg,#7c5cfc,#ffd166); }
 
     .card-date {
       font-size: 11px;
@@ -448,6 +453,10 @@
         <div class="avatar">🐳</div>
         <span>홍리하</span>
       </div>
+      <div class="author-chip bada">
+        <div class="avatar">🔔</div>
+        <span>아빠(바다)</span>
+      </div>
     </div>
   </header>
 
@@ -461,11 +470,12 @@
     <button class="filter-btn" data-filter="simulation">🐰 육성</button>
     <button class="filter-btn" data-filter="feeding">🍽️ 먹이기</button>
     <button class="filter-btn" data-filter="puzzle">🧩 퍼즐</button>
+    <button class="filter-btn" data-filter="family">🔔 가족 작품</button>
   </div>
 
   <!-- ─── 카운터 ─── -->
   <div class="game-count">
-    총 <strong id="visibleCount">12</strong>개의 게임
+    총 <strong id="visibleCount">13</strong>개의 게임
   </div>
 
   <!-- ─── 게임 그리드 ─── -->
@@ -934,13 +944,53 @@
       </div>
     </a>
 
+    <!-- 13. 우리 가족 할리갈리 -->
+    <a class="game-card"
+       href="halli_galli/index.html"
+       data-theme="gold"
+       data-tags="bada family bell matching cardgame"
+       data-author="bada">
+      <div class="thumbnail thumb-gold">
+        <span class="thumb-bg-emoji">🔔</span>
+        <div class="thumb-main">
+          <span class="thumb-icon">👨‍👩‍👧‍👦</span>
+          <div class="thumb-title">우리 가족 할리갈리</div>
+        </div>
+        <div class="badge-new">NEW</div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">우리 가족 할리갈리 🔔</div>
+        <div class="card-desc">
+          진짜 우리 가족 얼굴로 만든 할리갈리 카드 게임! 아빠(바다)·엄마·유화·리하
+          중 2~4명이 한 화면에서 함께 즐겨요. 공개된 카드 속 같은 얼굴을 더해서
+          정확히 5가 되면 제일 먼저 종을 울려보세요 🔔👨‍👩‍👧‍👦
+        </div>
+        <div class="card-tags">
+          <span class="tag tag-gold">가족게임</span>
+          <span class="tag tag-gold">보드게임</span>
+          <span class="tag tag-gold">종치기</span>
+          <span class="tag tag-gold">오프라인 멀티</span>
+        </div>
+        <div class="card-footer">
+          <div class="maker-badge">
+            <div class="maker-dot maker-bada">🔔</div>
+            <span>아빠(바다)의 가족 게임</span>
+          </div>
+          <div class="play-btn">
+            <span>플레이</span>
+            <div class="play-arrow">▶</div>
+          </div>
+        </div>
+      </div>
+    </a>
+
   </main>
 
   <!-- ─── 푸터 ─── -->
   <footer class="page-footer">
     <p>💡 게임을 클릭하면 바로 플레이할 수 있어요!</p>
     <p style="margin-top:8px;">
-      유화 &amp; 리하의 상상력으로 만들어졌습니다 <span class="heart">♥</span>
+      유화 &amp; 리하 &amp; 아빠(바다)의 상상력으로 만들어졌습니다 <span class="heart">♥</span>
     </p>
     <p style="margin-top:6px; font-size:12px; opacity:0.6;">2026 · Kids' Game Studio</p>
   </footer>
@@ -973,6 +1023,7 @@
           else if (filter === 'simulation') show = tags.includes('simulation');
           else if (filter === 'feeding')    show = tags.includes('feeding');
           else if (filter === 'puzzle')     show = tags.includes('puzzle');
+          else if (filter === 'family')     show = tags.includes('family');
 
           if (show) {
             card.classList.remove('hidden');
@@ -984,6 +1035,12 @@
 
         countEl.textContent = visible;
       });
+    });
+  </script>
+
+</body>
+</html>
+ });
     });
   </script>
 

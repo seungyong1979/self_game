@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>🔔 우리 가족 할리갈리</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ══════════ 배경 장식 ══════════ -->
+  <div class="bg-deco" aria-hidden="true"></div>
+
+  <!-- ══════════ 상단 바 ══════════ -->
+  <header class="topbar">
+    <a href="../index.html" class="back-link">← 게임 목록</a>
+    <div class="topbar-title">🔔 우리 가족 할리갈리</div>
+    <div class="topbar-actions">
+      <button id="rulesBtn" class="icon-btn" title="게임 방법">❓</button>
+      <button id="soundBtn" class="icon-btn" title="사운드 켜기/끄기">🔊</button>
+    </div>
+  </header>
+
+  <!-- ══════════ 1. 시작(플레이어 선택) 화면 ══════════ -->
+  <section id="setupScreen" class="screen setup-screen">
+    <div class="setup-card">
+      <div class="setup-bell">🔔</div>
+      <h1>우리 가족 할리갈리</h1>
+      <p class="setup-sub">엄마 · 아빠(바다) · 유화 · 리하<br>우리 가족 얼굴로 만든 할리갈리 게임!</p>
+
+      <h3 class="setup-label">누가 참여하나요? (2~4명 선택)</h3>
+      <div class="player-select" id="playerSelect">
+        <button class="player-chip" data-id="bada">
+          <img src="assets/img/circle_bada.png" alt="아빠 바다" />
+          <span>아빠(바다)</span>
+        </button>
+        <button class="player-chip" data-id="mom">
+          <img src="assets/img/circle_mom.png" alt="엄마" />
+          <span>엄마</span>
+        </button>
+        <button class="player-chip" data-id="yuha">
+          <img src="assets/img/circle_yuha.png" alt="유화" />
+          <span>유화</span>
+        </button>
+        <button class="player-chip" data-id="riha">
+          <img src="assets/img/circle_riha.png" alt="리하" />
+          <span>리하</span>
+        </button>
+      </div>
+
+      <p class="setup-hint" id="setupHint">최소 2명을 선택해주세요</p>
+
+      <button id="startBtn" class="btn-primary" disabled>게임 시작! 🎉</button>
+    </div>
+  </section>
+
+  <!-- ══════════ 2. 게임 화면 ══════════ -->
+  <section id="gameScreen" class="screen game-screen hidden">
+
+    <div class="game-status">
+      <div class="turn-indicator" id="turnIndicator">
+        <span class="turn-avatar" id="turnAvatar"></span>
+        <span id="turnText">준비 중...</span>
+      </div>
+      <div class="message-log" id="messageLog"></div>
+      <button id="restartBtn" class="btn-ghost">🔄 다시 시작</button>
+    </div>
+
+    <div class="player-grid" id="playerGrid">
+      <!-- 플레이어 카드가 여기 동적으로 생성됩니다 -->
+    </div>
+
+    <div class="deck-info">
+      <span id="deckRemain">남은 카드: -</span>
+    </div>
+  </section>
+
+  <!-- ══════════ 3. 결과 화면 ══════════ -->
+  <section id="resultScreen" class="screen result-screen hidden">
+    <div class="result-card">
+      <div class="result-trophy">🏆</div>
+      <h1 id="winnerTitle">승자는?</h1>
+      <div class="result-list" id="resultList"></div>
+      <div class="result-actions">
+        <button id="playAgainBtn" class="btn-primary">한 번 더! 🔔</button>
+        <a href="../index.html" class="btn-ghost">게임 목록으로</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 규칙 모달 ══════════ -->
+  <div id="rulesModal" class="modal hidden">
+    <div class="modal-box">
+      <button class="modal-close" id="rulesCloseBtn">✕</button>
+      <h2>🔔 게임 방법</h2>
+      <ol class="rules-list">
+        <li><b>얼굴 카드 56장</b>을 섞어서 참여한 가족에게 골고루 나눠줘요.<br>(같은 얼굴이 1~5개씩 그려진 카드가 각 14장씩!)</li>
+        <li>차례가 되면 <b>"카드 뒤집기"</b> 버튼을 눌러 내 카드를 한 장 공개해요.</li>
+        <li>지금 <b>공개되어 있는 모든 사람들의 카드</b>를 보고, 같은 얼굴이 그려진 개수를 다 더해보세요!</li>
+        <li>어떤 얼굴이든 개수를 더해서 <b>정확히 5개</b>가 되면, 누구든 제일 먼저 <b>🔔 종치기!</b> 버튼을 눌러요.</li>
+        <li>정답이면 그 순간 공개되어 있던 카드를 모두 가져가요! 오답이면 다른 가족에게 카드를 한 장씩 벌칙으로 줘야 해요.</li>
+        <li>모든 사람의 카드가 다 없어지면 게임 종료! 카드를 가장 많이 모은 사람이 <b>승리</b> 🏆</li>
+      </ol>
+      <button class="btn-primary" id="rulesOkBtn">알겠어요!</button>
+    </div>
+  </div>
+
+  <audio id="sfxFlip" src="assets/sfx/card_flip.mp3" preload="auto"></audio>
+  <audio id="sfxBell" src="assets/sfx/bell_ring.mp3" preload="auto"></audio>
+  <audio id="sfxBuzz" src="assets/sfx/buzzer_wrong.mp3" preload="auto"></audio>
+  <audio id="sfxWin" src="assets/sfx/win_fanfare.mp3" preload="auto"></audio>
+
+  <script src="js/game.js"></script>
+</body>
+</html>
