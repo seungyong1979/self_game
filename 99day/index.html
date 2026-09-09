@@ -2,11 +2,13 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐧 99일의 생존 - 펭귄의 얼음 모험</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="../shared/game-shell.css">
+    <script defer src="../shared/game-shell.js"></script>
 </head>
-<body>
+<body data-home-href="../index.html">
     <!-- 배경 레이어 -->
     <div id="bg-container">
         <div id="sky"></div>
@@ -38,7 +40,7 @@
                     <div id="timer-bar"></div>
                 </div>
             </div>
-            <button id="sound-btn" onclick="toggleSound()">🔊</button>
+            <button id="sound-btn" onclick="toggleSound()" aria-label="소리 끄기" aria-pressed="false">🔊</button>
         </div>
     </div>
 

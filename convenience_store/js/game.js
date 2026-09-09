@@ -16,7 +16,7 @@ const JOBS = {
   stock: {
     key: 'stock',
     name: '상품 진열하기 📦',
-    icon: 'assets/img/job_stock.png',
+    icon: 'assets/img/job_stock.webp',
     tapsNeeded: 8,
     tapGain: 100 / 8,
     reward: 25,
@@ -27,7 +27,7 @@ const JOBS = {
   cola: {
     key: 'cola',
     name: '콜라 마시기 🥤',
-    icon: 'assets/img/item_cola.png',
+    icon: 'assets/img/item_cola.webp',
     tapsNeeded: 6,
     tapGain: 100 / 6,
     reward: 10,
@@ -38,7 +38,7 @@ const JOBS = {
   ramen: {
     key: 'ramen',
     name: '라면 먹기 🍜',
-    icon: 'assets/img/item_ramen.png',
+    icon: 'assets/img/item_ramen.webp',
     tapsNeeded: 9,
     tapGain: 100 / 9,
     reward: 15,
@@ -49,7 +49,7 @@ const JOBS = {
   clean: {
     key: 'clean',
     name: '청소하기 🧹',
-    icon: 'assets/img/job_clean.png',
+    icon: 'assets/img/job_clean.webp',
     tapsNeeded: 7,
     tapGain: 100 / 7,
     reward: 20,
@@ -62,18 +62,18 @@ const JOB_KEYS = Object.keys(JOBS);
 
 // 상점 아이템 12종 (아이들이 좋아하는 간식/장난감 구성)
 const SHOP_ITEMS = [
-  { key: 'snack',    name: '맛있는 과자',   icon: 'assets/img/shop_snack.png',    price: 20 },
-  { key: 'drink',    name: '달콤한 음료',   icon: 'assets/img/shop_drink.png',    price: 15 },
-  { key: 'toy',      name: '귀여운 장난감', icon: 'assets/img/shop_toy.png',      price: 50 },
-  { key: 'icecream', name: '아이스크림',   icon: 'assets/img/shop_icecream.png', price: 25 },
-  { key: 'lollipop', name: '막대사탕',     icon: 'assets/img/shop_lollipop.png', price: 10 },
-  { key: 'chocolate',name: '초콜릿바',     icon: 'assets/img/shop_chocolate.png',price: 18 },
-  { key: 'donut',    name: '도넛',         icon: 'assets/img/shop_donut.png',    price: 22 },
-  { key: 'jelly',    name: '젤리 곰돌이',   icon: 'assets/img/shop_jelly.png',    price: 12 },
-  { key: 'balloon',  name: '풍선',         icon: 'assets/img/shop_balloon.png',  price: 14 },
-  { key: 'robot',    name: '로봇 장난감',   icon: 'assets/img/shop_robot.png',    price: 55 },
-  { key: 'cupcake',  name: '컵케이크',     icon: 'assets/img/shop_cupcake.png',  price: 28 },
-  { key: 'cookie',   name: '쿠키',         icon: 'assets/img/shop_cookie.png',   price: 16 },
+  { key: 'snack',    name: '맛있는 과자',   icon: 'assets/img/shop_snack.webp',    price: 20 },
+  { key: 'drink',    name: '달콤한 음료',   icon: 'assets/img/shop_drink.webp',    price: 15 },
+  { key: 'toy',      name: '귀여운 장난감', icon: 'assets/img/shop_toy.webp',      price: 50 },
+  { key: 'icecream', name: '아이스크림',   icon: 'assets/img/shop_icecream.webp', price: 25 },
+  { key: 'lollipop', name: '막대사탕',     icon: 'assets/img/shop_lollipop.webp', price: 10 },
+  { key: 'chocolate',name: '초콜릿바',     icon: 'assets/img/shop_chocolate.webp',price: 18 },
+  { key: 'donut',    name: '도넛',         icon: 'assets/img/shop_donut.webp',    price: 22 },
+  { key: 'jelly',    name: '젤리 곰돌이',   icon: 'assets/img/shop_jelly.webp',    price: 12 },
+  { key: 'balloon',  name: '풍선',         icon: 'assets/img/shop_balloon.webp',  price: 14 },
+  { key: 'robot',    name: '로봇 장난감',   icon: 'assets/img/shop_robot.webp',    price: 55 },
+  { key: 'cupcake',  name: '컵케이크',     icon: 'assets/img/shop_cupcake.webp',  price: 28 },
+  { key: 'cookie',   name: '쿠키',         icon: 'assets/img/shop_cookie.webp',   price: 16 },
 ];
 const SHOP_ITEM_MAP = {};
 SHOP_ITEMS.forEach(it => { SHOP_ITEM_MAP[it.key] = it; });
@@ -231,12 +231,12 @@ function completeJob() {
 
   showComboToast(`✨ 알바 성공! +${j.timeBonus}초 · +${j.reward}원`);
 
-  kurumiImg.src = 'assets/img/kurumi_happy.png';
+  kurumiImg.src = 'assets/img/kurumi_happy.webp';
   kurumiImg.classList.add('pop');
 
   setTimeout(() => {
     jobPanel.classList.add('hidden');
-    kurumiImg.src = 'assets/img/kurumi_idle.png';
+    kurumiImg.src = 'assets/img/kurumi_idle.webp';
     kurumiImg.classList.remove('pop');
     updateZonesUI();
   }, 750);
@@ -389,7 +389,7 @@ function startGame() {
 
   itemPile.innerHTML = '';
   jobPanel.classList.add('hidden');
-  kurumiImg.src = 'assets/img/kurumi_idle.png';
+  kurumiImg.src = 'assets/img/kurumi_idle.webp';
   updateCoinsUI();
   updateTimerUI();
   showScreen('game');
@@ -419,13 +419,13 @@ function endGame(reason = 'timeout') {
 
   if (reason === 'moneySpent') {
     overScreen.classList.add('shopping-complete');
-    overKurumi.src = 'assets/img/kurumi_happy.png';
+    overKurumi.src = 'assets/img/kurumi_happy.webp';
     overTitle.textContent = '코인을 다 썼어요!';
     overSub.textContent = '쿠루미가 쇼핑을 완벽하게 끝냈어요 🎉';
     overTip.textContent = '💡 다음엔 알바를 더 많이 해서 시간이 남았을 때 쇼핑해봐요!';
   } else {
     overScreen.classList.remove('shopping-complete');
-    overKurumi.src = 'assets/img/kurumi_sad.png';
+    overKurumi.src = 'assets/img/kurumi_sad.webp';
     overTitle.textContent = '시간이 다 됐어요!';
     overSub.textContent = '오늘 알바는 여기까지예요 😢';
     overTip.textContent = '💡 알바와 쇼핑을 균형있게 하면 더 많은 걸 살 수 있어요!';
@@ -441,7 +441,7 @@ function renderShopGrid() {
     <div class="shop-item" data-item="${it.key}" data-price="${it.price}">
       <img src="${it.icon}" alt="${it.name}">
       <div class="shop-item-name">${it.name}</div>
-      <div class="shop-item-price"><img src="assets/img/coin.png" class="mini-coin">${it.price}</div>
+      <div class="shop-item-price"><img src="assets/img/coin.webp" class="mini-coin">${it.price}</div>
       <button class="btn-buy">구매하기</button>
       <div class="owned-badge" id="owned-${it.key}">0개 보유</div>
     </div>
@@ -550,6 +550,8 @@ renderShopGrid();
 btnMute.addEventListener('click', () => {
   state.muted = !state.muted;
   btnMute.textContent = state.muted ? '🔇' : '🔊';
+  btnMute.setAttribute('aria-pressed', String(state.muted));
+  btnMute.setAttribute('aria-label', state.muted ? '소리 켜기' : '소리 끄기');
   if (state.muted) sounds.bgm.pause();
   else if (state.running) sounds.bgm.play().catch(() => {});
 });

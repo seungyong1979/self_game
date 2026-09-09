@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Rabbit Catch — Upgraded Web Build</title>
+  <link rel="stylesheet" href="shared/game-shell.css" />
+  <script defer src="shared/game-shell.js"></script>
   <style>
     html, body { margin:0; padding:0; height:100%; background:#111; color:#eee; font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans KR",sans-serif; }
     #wrap { display:flex; flex-direction:column; height:100%; }
@@ -68,7 +70,7 @@
     .sep{ height:1px; background:#242424; margin:12px 0; }
   </style>
 </head>
-<body>
+<body data-home-href="index.html" data-audio-toggle>
 <div id="wrap">
   <div id="topbar">
     <div class="pill">라운드: <span id="round">1</span></div>
@@ -179,6 +181,7 @@
   }
 
   function playGunShot(){
+    if(document.documentElement.dataset.soundMuted === "true") return;
     const ac = getAC();
     const t = ac.currentTime;
 
@@ -218,6 +221,7 @@
   }
 
   function playReload(){
+    if(document.documentElement.dataset.soundMuted === "true") return;
     const ac = getAC();
     const t = ac.currentTime;
 
@@ -246,6 +250,7 @@
 
     const ac = getAC();
     bgmTimer = setInterval(()=>{
+      if(document.documentElement.dataset.soundMuted === "true") return;
       const t = ac.currentTime;
       const freq = melody[melodyStep % melody.length];
       melodyStep++;
@@ -339,11 +344,13 @@
 
   // mouse
   const mouse = { x: W()/2, y: H()/2 };
-  canvas.addEventListener("mousemove", (e) => {
+  function updateAim(e) {
     const r = rect();
     mouse.x = e.clientX - r.left;
     mouse.y = e.clientY - r.top;
-  });
+  }
+  canvas.addEventListener("mousemove", updateAim);
+  canvas.addEventListener("pointerdown", updateAim);
 
   // ========== Upgrades ==========
   // pricing curves are intentionally simple and predictable.

@@ -462,15 +462,15 @@
 
   <!-- ─── 필터 ─── -->
   <div class="filter-bar">
-    <button class="filter-btn active" data-filter="all">🎮 전체</button>
-    <button class="filter-btn" data-filter="yuha">🦋 유화 작품</button>
-    <button class="filter-btn" data-filter="riha">🐳 리하 작품</button>
-    <button class="filter-btn" data-filter="action">⚔️ 액션</button>
-    <button class="filter-btn" data-filter="avoid">🏃 피하기</button>
-    <button class="filter-btn" data-filter="simulation">🐰 육성</button>
-    <button class="filter-btn" data-filter="feeding">🍽️ 먹이기</button>
-    <button class="filter-btn" data-filter="puzzle">🧩 퍼즐</button>
-    <button class="filter-btn" data-filter="family">🔔 가족 작품</button>
+    <button type="button" class="filter-btn active" data-filter="all" aria-pressed="true">🎮 전체</button>
+    <button type="button" class="filter-btn" data-filter="yuha" aria-pressed="false">🦋 유화 작품</button>
+    <button type="button" class="filter-btn" data-filter="riha" aria-pressed="false">🐳 리하 작품</button>
+    <button type="button" class="filter-btn" data-filter="action" aria-pressed="false">⚔️ 액션</button>
+    <button type="button" class="filter-btn" data-filter="avoid" aria-pressed="false">🏃 피하기</button>
+    <button type="button" class="filter-btn" data-filter="simulation" aria-pressed="false">🐰 육성</button>
+    <button type="button" class="filter-btn" data-filter="feeding" aria-pressed="false">🍽️ 먹이기</button>
+    <button type="button" class="filter-btn" data-filter="puzzle" aria-pressed="false">🧩 퍼즐</button>
+    <button type="button" class="filter-btn" data-filter="family" aria-pressed="false">🔔 가족 작품</button>
   </div>
 
   <!-- ─── 카운터 ─── -->
@@ -961,15 +961,15 @@
       <div class="card-body">
         <div class="card-title">우리 가족 할리갈리 🔔</div>
         <div class="card-desc">
-          진짜 우리 가족 얼굴로 만든 할리갈리 카드 게임! 아빠(바다)·엄마·유화·리하
-          중 2~4명이 한 화면에서 함께 즐겨요. 공개된 카드 속 같은 얼굴을 더해서
-          정확히 5가 되면 제일 먼저 종을 울려보세요 🔔👨‍👩‍👧‍👦
+          진짜 우리 가족 얼굴로 만든 1인용 할리갈리! 내 캐릭터를 고르고
+          컴퓨터와 번갈아 카드를 뒤집어요. 같은 얼굴의 합이 정확히 5가 되면
+          컴퓨터보다 먼저 큰 종을 울려보세요 🔔🤖
         </div>
         <div class="card-tags">
-          <span class="tag tag-gold">가족게임</span>
+          <span class="tag tag-gold">1인용</span>
           <span class="tag tag-gold">보드게임</span>
           <span class="tag tag-gold">종치기</span>
-          <span class="tag tag-gold">오프라인 멀티</span>
+          <span class="tag tag-gold">컴퓨터 대결</span>
         </div>
         <div class="card-footer">
           <div class="maker-badge">
@@ -1004,8 +1004,12 @@
     filterBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         // 활성 버튼 교체
-        filterBtns.forEach(b => b.classList.remove('active'));
+        filterBtns.forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-pressed', 'false');
+        });
         btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
 
         const filter = btn.dataset.filter;
         let visible = 0;
@@ -1035,12 +1039,6 @@
 
         countEl.textContent = visible;
       });
-    });
-  </script>
-
-</body>
-</html>
- });
     });
   </script>
 

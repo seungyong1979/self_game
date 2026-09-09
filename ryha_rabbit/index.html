@@ -2,8 +2,10 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🐰 리하의 토끼 키우기</title>
+<link rel="stylesheet" href="../shared/game-shell.css">
+<script defer src="../shared/game-shell.js"></script>
 <style>
   /* ===== RESET & BASE ===== */
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -1104,7 +1106,7 @@
   }
 </style>
 </head>
-<body>
+<body data-home-href="../index.html" data-audio-toggle>
 
 <!-- ====== TITLE SCREEN ====== -->
 <div class="screen active" id="titleScreen">
@@ -1192,7 +1194,7 @@
     </div>
     <div class="top-right">
       <div class="timer-display" id="timerDisplay">⏰ 10:00</div>
-      <button class="music-btn" id="musicBtn" onclick="toggleMusic()">🎵</button>
+      <button class="music-btn" id="musicBtn" onclick="toggleMusic()" aria-label="배경음악 끄기" aria-pressed="true">🎵</button>
     </div>
   </div>
 
@@ -1851,6 +1853,7 @@ function getAudioCtx() {
 }
 
 function playTone(freq, type='sine', duration=0.2, gain=0.15, delay=0) {
+  if (document.documentElement.dataset.soundMuted === 'true') return;
   try {
     const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
@@ -1899,7 +1902,10 @@ function stopBGMusic() {
 }
 function toggleMusic() {
   state.musicOn = !state.musicOn;
-  document.getElementById('musicBtn').textContent = state.musicOn ? '🎵' : '🔇';
+  const musicBtn = document.getElementById('musicBtn');
+  musicBtn.textContent = state.musicOn ? '🎵' : '🔇';
+  musicBtn.setAttribute('aria-pressed', String(state.musicOn));
+  musicBtn.setAttribute('aria-label', state.musicOn ? '배경음악 끄기' : '배경음악 켜기');
   if (state.musicOn) startBGMusic();
   else stopBGMusic();
 }

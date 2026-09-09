@@ -4,6 +4,8 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>햄버거를 피해라!</title>
+<link rel="stylesheet" href="shared/game-shell.css"/>
+<script defer src="shared/game-shell.js"></script>
 <style>
 html,body{height:100%;margin:0;font-family:system-ui;background:#0b1220;color:#e8eefc;}
 .wrap{height:100%;display:flex;flex-direction:column;}
@@ -29,7 +31,7 @@ color:#e8eefc;font-size:22px;display:grid;place-items:center;}
 footer{text-align:center;padding:10px;font-size:12px;color:rgba(232,238,252,.75);}
 </style>
 </head>
-<body>
+<body data-home-href="index.html" data-audio-toggle>
 <div class="wrap">
 <header>
   <div class="pill" id="hudGems">보석 횟수: 0</div>
@@ -83,6 +85,7 @@ function initAudio(){
   }
 }
 function beep(freq,dur){
+  if(document.documentElement.dataset.soundMuted === "true") return;
   initAudio();
   const o=actx.createOscillator();
   const g=actx.createGain();

@@ -293,7 +293,7 @@ html, body {
 .victory-bg {
   position: absolute;
   inset: 0;
-  background-image: url('../assets/img/banana_bg.png');
+  background-image: url('../assets/img/banana_bg.webp');
   background-size: cover;
   background-position: center;
   z-index: 0;

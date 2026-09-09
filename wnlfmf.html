@@ -2,8 +2,10 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>거대 생쥐를 피해라! (UI 개선 버전)</title>
+    <link rel="stylesheet" href="shared/game-shell.css">
+    <script defer src="shared/game-shell.js"></script>
     <style>
         body { margin: 0; padding: 0; overflow: hidden; background-color: #1a0f00; font-family: 'Arial', sans-serif; touch-action: none; }
         #game-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
@@ -47,7 +49,7 @@
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
-<body>
+<body data-home-href="index.html" data-audio-toggle>
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
     
@@ -78,6 +80,7 @@
     // --- 사운드 엔진 ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playTone(freq, type, duration, vol = 0.1) {
+        if (document.documentElement.dataset.soundMuted === 'true') return;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = type;

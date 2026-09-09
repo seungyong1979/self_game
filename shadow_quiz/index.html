@@ -2,8 +2,10 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🌑 그림자를 보고 맞춰라!</title>
+<link rel="stylesheet" href="../shared/game-shell.css">
+<script defer src="../shared/game-shell.js"></script>
 <style>
 /* ═══ 기본 리셋 ═══ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -420,7 +422,7 @@ html, body {
 }
 </style>
 </head>
-<body>
+<body data-home-href="../index.html" data-audio-toggle>
 <canvas id="particleCanvas"></canvas>
 <div id="app">
 
@@ -600,6 +602,7 @@ function getAC() {
   return AC;
 }
 function playTone(freqs, dur = 0.12, type = 'sine', vol = 0.28) {
+  if (document.documentElement.dataset.soundMuted === 'true') return;
   try {
     const ac = getAC();
     freqs.forEach(([f, t0, t1], i) => {

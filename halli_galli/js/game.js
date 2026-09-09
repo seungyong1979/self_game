@@ -1,27 +1,25 @@
-/* ══════════════════════════════════════
-   우리 가족 할리갈리 - 게임 로직
-   ══════════════════════════════════════ */
+/* 우리 가족 할리갈리 - 1인용 게임 로직 */
 (function () {
   'use strict';
 
-  // ---------- 데이터 ----------
   const FACES = [
-    { id: 'bada', name: '아빠(바다)', img: 'assets/img/face_bada.jpg', circle: 'assets/img/circle_bada.png' },
-    { id: 'mom',  name: '엄마',       img: 'assets/img/face_mom.jpg',  circle: 'assets/img/circle_mom.png' },
-    { id: 'yuha', name: '유화',       img: 'assets/img/face_yuha.jpg', circle: 'assets/img/circle_yuha.png' },
-    { id: 'riha', name: '리하',       img: 'assets/img/face_riha.jpg', circle: 'assets/img/circle_riha.png' },
+    { id: 'bada', name: '아빠(바다)', circle: 'assets/img/circle_bada.png' },
+    { id: 'mom', name: '엄마', circle: 'assets/img/circle_mom.png' },
+    { id: 'yuha', name: '유화', circle: 'assets/img/circle_yuha.png' },
+    { id: 'riha', name: '리하', circle: 'assets/img/circle_riha.png' },
   ];
-  const FACE_MAP = {};
-  FACES.forEach((f) => (FACE_MAP[f.id] = f));
-
-  // 얼굴 1명당 14장: 1개x5, 2개x4, 3개x3, 4개x1, 5개x1 = 원작 할리갈리 구성
+  const FACE_MAP = Object.fromEntries(FACES.map((face) => [face.id, face]));
   const COUNT_DIST = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 5];
+  const COMPUTER_INFO = { id: 'computer', name: '컴퓨터', emoji: '🤖' };
 
-  let state = null; // 진행중인 게임 상태
+  let state = null;
+  let selected = null;
   let soundOn = true;
-  let flashCorrectEl, flashWrongEl;
+  let turnTimer = null;
+  let aiBellTimer = null;
+  let flashCorrectEl;
+  let flashWrongEl;
 
-  // ---------- DOM ----------
   const setupScreen = document.getElementById('setupScreen');
   const gameScreen = document.getElementById('gameScreen');
   const resultScreen = document.getElementById('resultScreen');
@@ -29,6 +27,7 @@
   const setupHint = document.getElementById('setupHint');
   const startBtn = document.getElementById('startBtn');
   const playerGrid = document.getElementById('playerGrid');
+  const playerBellBtn = document.getElementById('playerBellBtn');
   const turnAvatar = document.getElementById('turnAvatar');
   const turnText = document.getElementById('turnText');
   const messageLog = document.getElementById('messageLog');
@@ -52,14 +51,13 @@
     flashCorrectEl.className = 'flash-correct';
     flashWrongEl = document.createElement('div');
     flashWrongEl.className = 'flash-wrong';
-    document.body.appendChild(flashCorrectEl);
-    document.body.appendChild(flashWrongEl);
+    document.body.append(flashCorrectEl, flashWrongEl);
   }
 
   function flash(type) {
     const el = type === 'correct' ? flashCorrectEl : flashWrongEl;
     el.classList.remove('show');
-    void el.offsetWidth; // 애니메이션 재시작 트릭
+    void el.offsetWidth;
     el.classList.add('show');
   }
 
@@ -68,320 +66,331 @@
     try {
       el.currentTime = 0;
       el.play().catch(() => {});
-    } catch (e) {
-      /* ignore */
+    } catch (error) {
+      // 자동 재생이 막혀도 게임은 계속 진행한다.
     }
   }
 
-  function logMessage(msg) {
-    messageLog.textContent = msg;
+  function logMessage(message) {
+    messageLog.textContent = message;
   }
 
-  // ---------- 셋업: 플레이어 선택 ----------
-  let selected = [];
+  function clearTimers() {
+    window.clearTimeout(turnTimer);
+    window.clearTimeout(aiBellTimer);
+    turnTimer = null;
+    aiBellTimer = null;
+  }
 
   playerSelect.querySelectorAll('.player-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
-      const id = chip.dataset.id;
-      const idx = selected.indexOf(id);
-      if (idx >= 0) {
-        selected.splice(idx, 1);
-        chip.classList.remove('selected');
-      } else {
-        if (selected.length >= 4) return;
-        selected.push(id);
-        chip.classList.add('selected');
-      }
+      selected = chip.dataset.id;
+      playerSelect.querySelectorAll('.player-chip').forEach((item) => {
+        item.classList.toggle('selected', item === chip);
+        item.setAttribute('aria-pressed', String(item === chip));
+      });
       updateSetupHint();
     });
   });
 
   function updateSetupHint() {
-    if (selected.length < 2) {
-      setupHint.textContent = `최소 2명을 선택해주세요 (현재 ${selected.length}명 선택됨)`;
+    if (!selected) {
+      setupHint.textContent = '캐릭터 한 명을 선택해주세요';
       startBtn.disabled = true;
-    } else {
-      setupHint.textContent = `${selected.length}명이 함께 플레이해요! 🎉`;
-      startBtn.disabled = false;
+      return;
     }
+    setupHint.textContent = `${FACE_MAP[selected].name}(으)로 컴퓨터와 대결해요!`;
+    startBtn.disabled = false;
   }
 
   startBtn.addEventListener('click', () => {
-    if (selected.length < 2) return;
-    startGame(selected.slice());
+    if (selected) startGame(selected);
   });
 
-  // ---------- 덱 만들기 ----------
   function buildDeck() {
     const deck = [];
-    FACES.forEach((f) => {
-      COUNT_DIST.forEach((n) => {
-        deck.push({ face: f.id, count: n });
-      });
+    FACES.forEach((face) => {
+      COUNT_DIST.forEach((count) => deck.push({ face: face.id, count }));
     });
-    // Fisher-Yates 셔플
     for (let i = deck.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      const tmp = deck[i];
-      deck[i] = deck[j];
-      deck[j] = tmp;
+      [deck[i], deck[j]] = [deck[j], deck[i]];
     }
     return deck;
   }
 
-  // ---------- 게임 시작 ----------
-  function startGame(playerIds) {
-    const fullDeck = buildDeck();
-    const players = playerIds.map((id) => ({
-      id,
-      info: FACE_MAP[id],
-      deck: [], // 뒤집기 전 카드 (face-down)
-      pile: [], // 뒤집어서 공개된 카드들 (맨 마지막이 위 = 보이는 카드)
-      score: 0, // 종치기로 획득해서 영구히 모은 카드 수
-      out: false,
-    }));
-
-    // 골고루 라운드로빈으로 분배
-    let pi = 0;
-    fullDeck.forEach((card) => {
-      players[pi % players.length].deck.push(card);
-      pi++;
-    });
-
+  function startGame(playerId) {
+    clearTimers();
+    const players = [
+      { id: playerId, info: FACE_MAP[playerId], deck: [], pile: [], score: 0, isComputer: false },
+      { id: 'computer', info: COMPUTER_INFO, deck: [], pile: [], score: 0, isComputer: true },
+    ];
+    buildDeck().forEach((card, index) => players[index % 2].deck.push(card));
     state = {
       players,
-      turnIdx: 0,
+      turnIdx: Math.random() < 0.5 ? 0 : 1,
       ended: false,
+      bellLocked: false,
+      turnLocked: false,
     };
 
     setupScreen.classList.add('hidden');
     resultScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
-
     renderPlayerGrid();
-    advanceTurn(true);
-    logMessage('게임 시작! 순서대로 카드를 뒤집어요 🔔');
-    renderAll();
+    logMessage('게임 시작! 합계가 5가 되는 순간 큰 종을 눌러요.');
+    scheduleCurrentTurn(900);
   }
 
-  // ---------- 화면 렌더링 ----------
+  function avatarMarkup(player) {
+    if (player.isComputer) return '<span class="player-emoji" aria-hidden="true">🤖</span>';
+    return `<img src="${player.info.circle}" alt="${player.info.name}">`;
+  }
+
   function renderPlayerGrid() {
-    playerGrid.className = 'player-grid n' + state.players.length;
+    playerGrid.className = 'player-grid n2 solo-grid';
     playerGrid.innerHTML = '';
-    state.players.forEach((p, idx) => {
+    state.players.forEach((player, index) => {
       const panel = document.createElement('div');
-      panel.className = 'player-panel';
-      panel.dataset.idx = idx;
+      panel.className = `player-panel${player.isComputer ? ' computer-panel' : ''}`;
+      panel.dataset.idx = index;
       panel.innerHTML = `
         <div class="player-header">
           <div class="player-name">
-            <img src="${p.info.circle}" alt="${p.info.name}">
-            <span>${p.info.name}</span>
+            ${avatarMarkup(player)}
+            <span>${player.info.name}</span>
+            <span class="role-badge">${player.isComputer ? '컴퓨터' : '나'}</span>
           </div>
         </div>
         <div class="player-stats">
-          <span>덱 <b class="stat-deck">${p.deck.length}</b>장</span>
-          <span>모은 카드 <b class="stat-score">${p.score}</b>장</span>
+          <span>남은 카드 <b class="stat-deck">${player.deck.length}</b>장</span>
+          <span>모은 카드 <b class="stat-score">${player.score}</b>장</span>
         </div>
         <div class="card-area">
-          <div class="deck-pile" data-idx="${idx}" title="내 차례에 눌러서 카드 뒤집기">
-            <div class="deck-pile-face"><span>🂠</span></div>
-            <div class="deck-count-badge">${p.deck.length}</div>
-          </div>
+          <button class="deck-pile" data-idx="${index}" aria-label="${player.isComputer ? '컴퓨터 카드 더미' : '내 카드 뒤집기'}">
+            <span class="deck-pile-face"><span>🂠</span></span>
+            <span class="deck-count-badge">${player.deck.length}</span>
+          </button>
           <div class="revealed-slot"></div>
-        </div>
-        <button class="bell-btn" data-idx="${idx}">🔔 종치기!</button>
-      `;
+        </div>`;
       playerGrid.appendChild(panel);
     });
 
-    playerGrid.querySelectorAll('.deck-pile').forEach((el) => {
-      el.addEventListener('click', () => onDeckClick(parseInt(el.dataset.idx, 10)));
-    });
-    playerGrid.querySelectorAll('.bell-btn').forEach((el) => {
-      el.addEventListener('click', () => onBellClick(parseInt(el.dataset.idx, 10)));
+    playerGrid.querySelectorAll('.deck-pile').forEach((deck) => {
+      deck.addEventListener('click', () => onDeckClick(Number(deck.dataset.idx)));
     });
   }
 
   function renderAll() {
     if (!state) return;
-    state.players.forEach((p, idx) => {
-      const panel = playerGrid.children[idx];
-      if (!panel) return;
-      panel.classList.toggle('active-turn', idx === state.turnIdx && !p.out && !state.ended);
-      panel.classList.toggle('out', p.out);
+    state.players.forEach((player, index) => {
+      const panel = playerGrid.children[index];
+      panel.classList.toggle('active-turn', index === state.turnIdx && !state.ended);
+      panel.querySelector('.stat-deck').textContent = player.deck.length;
+      panel.querySelector('.stat-score').textContent = player.score;
 
-      panel.querySelector('.stat-deck').textContent = p.deck.length;
-      panel.querySelector('.stat-score').textContent = p.score;
-
-      const deckPile = panel.querySelector('.deck-pile');
+      const deck = panel.querySelector('.deck-pile');
       const deckFace = panel.querySelector('.deck-pile-face');
-      const badge = panel.querySelector('.deck-count-badge');
-      badge.textContent = p.deck.length;
-      deckFace.classList.toggle('empty', p.deck.length === 0);
-      deckFace.innerHTML = p.deck.length > 0 ? '<span>🂠</span>' : '';
+      panel.querySelector('.deck-count-badge').textContent = player.deck.length;
+      deckFace.classList.toggle('empty', player.deck.length === 0);
+      deckFace.innerHTML = player.deck.length ? '<span>🂠</span>' : '';
+      const canFlip = index === 0 && state.turnIdx === 0 && !state.turnLocked && !state.ended && player.deck.length > 0;
+      deck.disabled = !canFlip;
+      deck.classList.toggle('disabled', !canFlip);
 
-      const canFlip = idx === state.turnIdx && !p.out && !state.ended && p.deck.length > 0;
-      deckPile.classList.toggle('disabled', !canFlip);
-
+      const top = player.pile[player.pile.length - 1];
       const slot = panel.querySelector('.revealed-slot');
-      const top = p.pile.length > 0 ? p.pile[p.pile.length - 1] : null;
-      if (top) {
-        const faceInfo = FACE_MAP[top.face];
-        let imgs = '';
-        for (let i = 0; i < top.count; i++) {
-          imgs += `<img src="${faceInfo.img}" alt="${faceInfo.name}">`;
-        }
-        slot.innerHTML = `<div class="revealed-card"><div class="face-count-count cnt-${top.count}">${imgs}</div></div>`;
+      if (!top) {
+        slot.innerHTML = '<div class="empty-slot">공개 카드 없음</div>';
       } else {
-        slot.innerHTML = `<div class="empty-slot">카드 없음</div>`;
+        const info = FACE_MAP[top.face];
+        const images = Array.from({ length: top.count }, () => `<img src="${info.circle}" alt="">`).join('');
+        slot.innerHTML = `
+          <div class="revealed-card" aria-label="${info.name} 사진 ${top.count}개">
+            <div class="face-count-count cnt-${top.count}" aria-hidden="true">${images}</div>
+          </div>`;
       }
-
-      const bellBtn = panel.querySelector('.bell-btn');
-      bellBtn.disabled = state.ended;
     });
 
-    const cur = state.players[state.turnIdx];
-    turnAvatar.style.backgroundImage = `url(${cur.info.circle})`;
-    turnText.textContent = state.ended ? '게임 종료!' : `${cur.info.name}의 차례예요! 카드를 뒤집어보세요`;
-
-    const totalRemain = state.players.reduce((s, p) => s + p.deck.length + p.pile.length, 0);
-    deckRemain.textContent = `남은 카드: ${totalRemain}장`;
+    const current = state.players[state.turnIdx];
+    if (current.isComputer) {
+      turnAvatar.style.backgroundImage = '';
+      turnAvatar.textContent = '🤖';
+      turnAvatar.classList.add('emoji-avatar');
+      turnText.textContent = state.ended ? '게임 종료!' : '컴퓨터가 카드를 고르는 중...';
+    } else {
+      turnAvatar.textContent = '';
+      turnAvatar.style.backgroundImage = `url(${current.info.circle})`;
+      turnAvatar.classList.remove('emoji-avatar');
+      turnText.textContent = state.ended ? '게임 종료!' : '내 차례! 내 카드 더미를 눌러요';
+    }
+    playerBellBtn.disabled = state.ended || state.bellLocked;
+    const remaining = state.players.reduce((sum, player) => sum + player.deck.length, 0);
+    deckRemain.textContent = `뒤집을 카드: ${remaining}장`;
   }
 
-  // ---------- 플레이 로직 ----------
-  function activePlayers() {
-    return state.players.filter((p) => !p.out);
-  }
-
-  function recomputeOutStatus() {
-    state.players.forEach((p) => {
-      p.out = p.deck.length === 0 && p.pile.length === 0;
-    });
-  }
-
-  // 아무도 더 이상 카드를 뒤집을 수 없으면(모두 덱이 0장) 게임이 자연스럽게 끝나야 함.
-  // (그렇지 않으면 아무도 정확히 5를 만들지 못할 경우 게임이 영원히 멈춰버림)
   function noOneCanFlip() {
-    return state.players.every((p) => p.out || p.deck.length === 0);
+    return state.players.every((player) => player.deck.length === 0);
   }
 
-  // isFirst = true : 게임 시작 시 첫 턴 찾기 (인덱스 0부터)
-  // isFirst = false: 현재 턴에서 다음 턴으로 넘기기
-  function advanceTurn(isFirst) {
-    const n = state.players.length;
-    let idx = isFirst ? 0 : (state.turnIdx + 1) % n;
-    let tries = 0;
-    while (tries < n) {
-      const p = state.players[idx];
-      if (!p.out && p.deck.length > 0) {
-        state.turnIdx = idx;
-        return;
-      }
-      idx = (idx + 1) % n;
-      tries++;
-    }
-    // 아무도 뒤집을 카드가 없음 (모두 pile만 갖고 있거나 게임 종료 임박)
-    state.turnIdx = idx;
+  function setNextTurn() {
+    const other = state.turnIdx === 0 ? 1 : 0;
+    if (state.players[other].deck.length > 0) state.turnIdx = other;
+    else if (state.players[state.turnIdx].deck.length === 0) return false;
+    return true;
   }
 
-  // 종을 잘못 눌렀을 때/치명적 상태변화 후, 현재 턴이 더 이상 유효하지 않으면 보정
-  function ensureValidTurn() {
-    const n = state.players.length;
-    let idx = state.turnIdx;
-    let tries = 0;
-    while (tries < n) {
-      const p = state.players[idx];
-      if (!p.out && p.deck.length > 0) {
-        state.turnIdx = idx;
-        return;
-      }
-      idx = (idx + 1) % n;
-      tries++;
-    }
-    state.turnIdx = idx;
-  }
-
-  function onDeckClick(idx) {
+  function scheduleCurrentTurn(delay = 650) {
     if (!state || state.ended) return;
-    if (idx !== state.turnIdx) return;
-    const p = state.players[idx];
-    if (p.out || p.deck.length === 0) return;
-
-    const card = p.deck.shift();
-    p.pile.push(card);
-    playSfx(sfxFlip);
-    logMessage(`${p.info.name}가 카드를 뒤집었어요!`);
-
-    recomputeOutStatus();
-
-    if (activePlayers().length <= 1 || noOneCanFlip()) {
+    window.clearTimeout(turnTimer);
+    state.bellLocked = false;
+    if (noOneCanFlip()) {
+      endGame();
+      return;
+    }
+    if (state.players[state.turnIdx].deck.length === 0 && !setNextTurn()) {
       endGame();
       return;
     }
 
-    advanceTurn(false);
+    const computerTurn = state.turnIdx === 1;
+    state.turnLocked = computerTurn;
     renderAll();
+    if (computerTurn) {
+      turnTimer = window.setTimeout(() => flipCard(1), delay + Math.random() * 450);
+    }
   }
 
-  function onBellClick(idx) {
-    if (!state || state.ended) return;
-    const ringer = state.players[idx];
-    if (ringer.out) return;
+  function onDeckClick(index) {
+    if (!state || state.ended || index !== 0 || state.turnIdx !== 0 || state.turnLocked) return;
+    flipCard(0);
+  }
 
-    // 현재 공개되어 있는 "맨 위" 카드들의 얼굴별 합계 계산
-    const sums = {};
-    FACES.forEach((f) => (sums[f.id] = 0));
-    state.players.forEach((p) => {
-      if (p.pile.length > 0) {
-        const top = p.pile[p.pile.length - 1];
-        sums[top.face] += top.count;
-      }
+  function flipCard(index) {
+    if (!state || state.ended || index !== state.turnIdx) return;
+    const player = state.players[index];
+    if (!player.deck.length) return;
+    window.clearTimeout(turnTimer);
+    state.turnLocked = true;
+    player.pile.push(player.deck.shift());
+    playSfx(sfxFlip);
+    logMessage(`${player.isComputer ? '컴퓨터가' : '내가'} 카드를 뒤집었어요. 얼굴 수를 세어보세요!`);
+    setNextTurn();
+    renderAll();
+    openBellWindow();
+  }
+
+  function faceSums() {
+    const sums = Object.fromEntries(FACES.map((face) => [face.id, 0]));
+    state.players.forEach((player) => {
+      const top = player.pile[player.pile.length - 1];
+      if (top) sums[top.face] += top.count;
     });
-    const matched = Object.keys(sums).some((f) => sums[f] === 5);
+    return sums;
+  }
 
-    if (matched) {
+  function hasMatch() {
+    return Object.values(faceSums()).some((sum) => sum === 5);
+  }
+
+  // 아이가 빠르게 찾으면 이길 수 있고, 놓치면 컴퓨터가 가져가는 정도로 반응을 조절한다.
+  function computerSkill() {
+    const scoreGap = state.players[0].score - state.players[1].score;
+    const accuracy = Math.max(0.55, Math.min(0.8, 0.68 + scoreGap * 0.01));
+    const reaction = Math.max(1350, Math.min(2550, 1900 - scoreGap * 12)) + Math.random() * 850;
+    return { accuracy, reaction };
+  }
+
+  function openBellWindow() {
+    state.bellLocked = false;
+    renderAll();
+    if (hasMatch()) {
+      const skill = computerSkill();
+      logMessage('합계 5가 있을지도 몰라요! 컴퓨터보다 먼저 종을 쳐요!');
+      if (Math.random() < skill.accuracy) {
+        aiBellTimer = window.setTimeout(() => resolveBell(1), skill.reaction);
+      } else {
+        turnTimer = window.setTimeout(() => finishCardWindow('컴퓨터가 정답을 놓쳤어요. 다음 카드로 넘어가요!'), 3500);
+      }
+      return;
+    }
+
+    if (Math.random() < 0.055) {
+      aiBellTimer = window.setTimeout(() => resolveBell(1), 450 + Math.random() * 500);
+    }
+    turnTimer = window.setTimeout(() => finishCardWindow('정답이 없어요. 다음 차례!'), 1050);
+  }
+
+  function finishCardWindow(message) {
+    if (!state || state.ended || state.bellLocked) return;
+    clearTimers();
+    state.turnLocked = false;
+    logMessage(message);
+    if (noOneCanFlip()) endGame();
+    else scheduleCurrentTurn(650);
+  }
+
+  function givePenalty(ringerIndex) {
+    const ringer = state.players[ringerIndex];
+    const opponent = state.players[ringerIndex === 0 ? 1 : 0];
+    if (ringer.deck.length > 0) {
+      opponent.deck.push(ringer.deck.shift());
+      return 1;
+    }
+    if (ringer.score > 0) {
+      ringer.score -= 1;
+      opponent.score += 1;
+      return 1;
+    }
+    return 0;
+  }
+
+  function resolveBell(ringerIndex) {
+    if (!state || state.ended || state.bellLocked) return;
+    clearTimers();
+    state.bellLocked = true;
+    state.turnLocked = true;
+    const ringer = state.players[ringerIndex];
+
+    if (hasMatch()) {
       let taken = 0;
-      state.players.forEach((p) => {
-        taken += p.pile.length;
-        p.pile = [];
+      state.players.forEach((player) => {
+        taken += player.pile.length;
+        player.pile = [];
       });
       ringer.score += taken;
       playSfx(sfxBell);
       flash('correct');
-      logMessage(`🔔 ${ringer.info.name} 정답! 카드 ${taken}장을 모았어요!`);
+      logMessage(`🔔 ${ringer.isComputer ? '컴퓨터' : '내가'} 정답! 공개 카드 ${taken}장을 가져갔어요.`);
     } else {
+      const penalty = givePenalty(ringerIndex);
       playSfx(sfxBuzz);
       flash('wrong');
-      const others = state.players.filter((p, i) => i !== idx && !p.out);
-      let given = 0;
-      others.forEach((p) => {
-        if (ringer.deck.length > 0) {
-          const c = ringer.deck.shift();
-          p.deck.push(c);
-          given++;
-        }
-      });
-      logMessage(`❌ ${ringer.info.name} 오답! 벌칙 카드를 ${given}장 나눠줬어요.`);
+      logMessage(`❌ ${ringer.isComputer ? '컴퓨터가' : '내가'} 잘못 눌렀어요.${penalty ? ' 카드 1장을 상대에게 줬어요.' : ''}`);
     }
 
-    recomputeOutStatus();
-
-    if (activePlayers().length <= 1 || noOneCanFlip()) {
-      endGame();
-      return;
-    }
-
-    ensureValidTurn();
     renderAll();
+    turnTimer = window.setTimeout(() => {
+      state.turnLocked = false;
+      if (noOneCanFlip()) endGame();
+      else scheduleCurrentTurn(700);
+    }, 1050);
   }
 
-  // ---------- 게임 종료 ----------
+  playerBellBtn.addEventListener('click', () => resolveBell(0));
+  document.addEventListener('keydown', (event) => {
+    if (event.code !== 'Space' || !state || state.ended || gameScreen.classList.contains('hidden')) return;
+    if (!rulesModal.classList.contains('hidden')) return;
+    event.preventDefault();
+    resolveBell(0);
+  });
+
   function endGame() {
+    if (!state || state.ended) return;
+    clearTimers();
     state.ended = true;
-    state.players.forEach((p) => {
-      // 최종 점수 = 종치기로 모은 카드 + 아직 갖고 있던 덱/공개 카드
-      p.finalScore = p.score + p.deck.length + p.pile.length;
+    state.players.forEach((player) => {
+      player.finalScore = player.score + player.deck.length + player.pile.length;
     });
     playSfx(sfxWin);
     renderAll();
@@ -391,62 +400,60 @@
   function showResult() {
     gameScreen.classList.add('hidden');
     resultScreen.classList.remove('hidden');
+    const [human, computer] = state.players;
+    if (human.finalScore > computer.finalScore) winnerTitle.textContent = '내가 이겼어요! 🏆';
+    else if (human.finalScore < computer.finalScore) winnerTitle.textContent = '컴퓨터가 이겼어요! 다시 도전해요';
+    else winnerTitle.textContent = '무승부예요! 정말 팽팽했어요 🎉';
 
     const sorted = state.players.slice().sort((a, b) => b.finalScore - a.finalScore);
     const topScore = sorted[0].finalScore;
-    const winners = sorted.filter((p) => p.finalScore === topScore);
-
-    winnerTitle.textContent =
-      winners.length > 1 ? '무승부! 모두 승자예요 🎉' : `${winners[0].info.name} 승리! 🏆`;
-
     resultList.innerHTML = '';
-    const rankEmojis = ['🥇', '🥈', '🥉', '4️⃣'];
-    sorted.forEach((p, i) => {
+    sorted.forEach((player, index) => {
       const row = document.createElement('div');
-      row.className = 'result-row' + (p.finalScore === topScore ? ' winner' : '');
+      row.className = `result-row${player.finalScore === topScore ? ' winner' : ''}`;
       row.innerHTML = `
-        <span class="rrank">${rankEmojis[i] || i + 1}</span>
-        <img src="${p.info.circle}" alt="${p.info.name}">
-        <span class="rname">${p.info.name}</span>
-        <span class="rscore">${p.finalScore}장</span>
-      `;
+        <span class="rrank">${index === 0 ? '🥇' : '🥈'}</span>
+        ${player.isComputer ? '<span class="result-emoji" aria-hidden="true">🤖</span>' : `<img src="${player.info.circle}" alt="${player.info.name}">`}
+        <span class="rname">${player.isComputer ? '컴퓨터' : `${player.info.name} (나)`}</span>
+        <span class="rscore">${player.finalScore}장</span>`;
       resultList.appendChild(row);
     });
   }
 
-  // ---------- 다시 시작 ----------
   function backToSetup() {
+    clearTimers();
     state = null;
+    selected = null;
     gameScreen.classList.add('hidden');
     resultScreen.classList.add('hidden');
     setupScreen.classList.remove('hidden');
-    selected = [];
-    playerSelect.querySelectorAll('.player-chip').forEach((c) => c.classList.remove('selected'));
+    playerSelect.querySelectorAll('.player-chip').forEach((chip) => {
+      chip.classList.remove('selected');
+      chip.setAttribute('aria-pressed', 'false');
+    });
     updateSetupHint();
   }
 
   restartBtn.addEventListener('click', () => {
-    if (!state || state.ended || confirm('정말 다시 시작할까요? 지금까지 진행한 게임이 사라져요.')) {
-      backToSetup();
-    }
+    if (!state || state.ended || window.confirm('정말 다시 시작할까요? 지금까지 진행한 게임이 사라져요.')) backToSetup();
   });
   playAgainBtn.addEventListener('click', backToSetup);
 
-  // ---------- 규칙 모달 ----------
   rulesBtn.addEventListener('click', () => rulesModal.classList.remove('hidden'));
   rulesCloseBtn.addEventListener('click', () => rulesModal.classList.add('hidden'));
   rulesOkBtn.addEventListener('click', () => rulesModal.classList.add('hidden'));
-  rulesModal.addEventListener('click', (e) => {
-    if (e.target === rulesModal) rulesModal.classList.add('hidden');
+  rulesModal.addEventListener('click', (event) => {
+    if (event.target === rulesModal) rulesModal.classList.add('hidden');
   });
 
-  // ---------- 사운드 토글 ----------
   soundBtn.addEventListener('click', () => {
     soundOn = !soundOn;
     soundBtn.textContent = soundOn ? '🔊' : '🔇';
+    soundBtn.setAttribute('aria-pressed', String(!soundOn));
+    soundBtn.setAttribute('aria-label', soundOn ? '소리 끄기' : '소리 켜기');
   });
 
-  // ---------- 초기화 ----------
   ensureFlashOverlays();
+  playerSelect.querySelectorAll('.player-chip').forEach((chip) => chip.setAttribute('aria-pressed', 'false'));
   updateSetupHint();
 })();

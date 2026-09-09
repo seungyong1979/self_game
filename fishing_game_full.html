@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>낚시 게임 (도감/사운드/정밀 판정)</title>
+  <link rel="stylesheet" href="shared/game-shell.css" />
+  <script defer src="shared/game-shell.js"></script>
   <style>
     html, body { margin:0; height:100%; background:#071322; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif; }
     canvas { display:block; margin:0 auto; background:#0a1b2b; }
@@ -92,7 +94,7 @@
     .locked .fishName, .locked .muted { opacity: 0.45; }
   </style>
 </head>
-<body>
+<body data-home-href="index.html" data-mobile-controls="dpad-action">
   <div class="hud">
     <div>상태: <b id="stateTxt">대기</b></div>
     <div>점수: <b id="scoreTxt">0</b></div>

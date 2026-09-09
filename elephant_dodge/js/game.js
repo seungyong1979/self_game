@@ -81,6 +81,8 @@
 
   function updateMuteUI() {
     muteBtn.textContent = muted ? '🔇' : '🔊';
+    muteBtn.setAttribute('aria-pressed', String(muted));
+    muteBtn.setAttribute('aria-label', muted ? '소리 켜기' : '소리 끄기');
     sounds.bgm.muted = muted;
   }
 
@@ -403,7 +405,7 @@
 
   function buildVictoryChars() {
     victoryChars.innerHTML = '';
-    const order = ['happy_elephant.png', 'watermelon.png', 'happy_elephant.png'];
+    const order = ['happy_elephant.webp', 'watermelon.webp', 'happy_elephant.webp'];
     order.forEach((file, i) => {
       const img = document.createElement('img');
       img.src = IMG_PATH + file;
@@ -675,13 +677,13 @@
   }
 
   Promise.all([
-    loadImage('elephant', 'elephant.png'),
-    loadImage('watermelon', 'watermelon.png'),
-    loadImage('mega', 'mega_elephant.png'),
-    loadImage('happy', 'happy_elephant.png'),
-    loadImage('zoo', 'zoo_bg.png'),
-    loadImage('banana', 'banana_bg.png'),
-    loadImage('heart', 'heart.png'),
+    loadImage('elephant', 'elephant.webp'),
+    loadImage('watermelon', 'watermelon.webp'),
+    loadImage('mega', 'mega_elephant.webp'),
+    loadImage('happy', 'happy_elephant.webp'),
+    loadImage('zoo', 'zoo_bg.webp'),
+    loadImage('banana', 'banana_bg.webp'),
+    loadImage('heart', 'heart.webp'),
   ]).then(() => {
     startBtn.disabled = false;
   });

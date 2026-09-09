@@ -2,11 +2,13 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>손님들의 무한 편의점 🏪 | 쿠루미의 알바 대모험</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="../shared/game-shell.css">
+<script defer src="../shared/game-shell.js"></script>
 </head>
-<body>
+<body data-home-href="../index.html">
 
 <div id="app">
 
@@ -15,7 +17,7 @@
     <div class="start-bg-deco">🍬 🧃 🍭 🍩 🧋 🍫</div>
     <div class="start-card">
       <h1 class="game-title">손님들의<br>무한 편의점 🏪</h1>
-      <img class="kurumi-hero" src="assets/img/kurumi_idle.png" alt="쿠루미">
+      <img class="kurumi-hero" src="assets/img/kurumi_idle.webp" alt="쿠루미">
       <p class="game-sub">쿠루미가 편의점을 돌아다니며<br>알바도 하고 쇼핑도 해요!</p>
       <button id="btnStart" class="btn-main">🎮 시작하기</button>
       <a href="../index.html" class="btn-home">🏠 게임 목록으로</a>
@@ -39,10 +41,10 @@
           <span class="rule-emoji">💪</span>
           <div class="rule-text"><b>알바를 하면 돈과 시간을 받아요!</b>
             <div class="rule-job-grid">
-              <div class="rule-job"><img src="assets/img/job_clean.png">청소 <b>+20원</b></div>
-              <div class="rule-job"><img src="assets/img/job_stock.png">진열 <b>+25원</b></div>
-              <div class="rule-job"><img src="assets/img/item_ramen.png">라면 <b>+15원</b></div>
-              <div class="rule-job"><img src="assets/img/item_cola.png">콜라 <b>+10원</b></div>
+              <div class="rule-job"><img src="assets/img/job_clean.webp">청소 <b>+20원</b></div>
+              <div class="rule-job"><img src="assets/img/job_stock.webp">진열 <b>+25원</b></div>
+              <div class="rule-job"><img src="assets/img/item_ramen.webp">라면 <b>+15원</b></div>
+              <div class="rule-job"><img src="assets/img/item_cola.webp">콜라 <b>+10원</b></div>
             </div>
           </div>
         </div>
@@ -61,7 +63,7 @@
 
   <!-- ─────────── 게임 플레이 화면 ─────────── -->
   <section id="screenGame" class="screen">
-    <div class="store-bg" style="background-image:url('assets/img/store_bg.png');"></div>
+    <div class="store-bg" style="background-image:url('assets/img/store_bg.webp');"></div>
 
     <!-- HUD -->
     <div id="hud">
@@ -73,10 +75,10 @@
       </div>
       <div class="hud-right">
         <div class="coin-wrap">
-          <img src="assets/img/coin.png" alt="코인" class="coin-icon">
+          <img src="assets/img/coin.webp" alt="코인" class="coin-icon">
           <span id="coinText">0</span>
         </div>
-        <button id="btnMute" class="hud-btn" title="음소거">🔊</button>
+        <button id="btnMute" class="hud-btn" title="음소거" aria-label="소리 끄기" aria-pressed="false">🔊</button>
         <button id="btnHelp" class="hud-btn" title="게임 방법">❓</button>
       </div>
     </div>
@@ -87,25 +89,25 @@
     <!-- 편의점 맵: 알바 구역들 + 쿠루미 -->
     <div id="mapArea" class="map-area">
       <button class="zone zone-stock" data-job="stock">
-        <img src="assets/img/job_stock.png" alt="진열">
+        <img src="assets/img/job_stock.webp" alt="진열">
         <span class="zone-label">진열하기</span>
         <span class="zone-pay">+25원</span>
         <div class="zone-cooldown-badge" id="cd-stock"></div>
       </button>
       <button class="zone zone-cola" data-job="cola">
-        <img src="assets/img/item_cola.png" alt="콜라">
+        <img src="assets/img/item_cola.webp" alt="콜라">
         <span class="zone-label">콜라 마시기</span>
         <span class="zone-pay">+10원</span>
         <div class="zone-cooldown-badge" id="cd-cola"></div>
       </button>
       <button class="zone zone-ramen" data-job="ramen">
-        <img src="assets/img/item_ramen.png" alt="라면">
+        <img src="assets/img/item_ramen.webp" alt="라면">
         <span class="zone-label">라면 먹기</span>
         <span class="zone-pay">+15원</span>
         <div class="zone-cooldown-badge" id="cd-ramen"></div>
       </button>
       <button class="zone zone-clean" data-job="clean">
-        <img src="assets/img/job_clean.png" alt="청소">
+        <img src="assets/img/job_clean.webp" alt="청소">
         <span class="zone-label">청소하기</span>
         <span class="zone-pay">+20원</span>
         <div class="zone-cooldown-badge" id="cd-clean"></div>
@@ -117,7 +119,7 @@
 
       <!-- 쿠루미 캐릭터 (이동함) -->
       <div id="kurumiWrap" class="kurumi-wrap-map">
-        <img id="kurumiImg" src="assets/img/kurumi_idle.png" alt="쿠루미" class="kurumi-char">
+        <img id="kurumiImg" src="assets/img/kurumi_idle.webp" alt="쿠루미" class="kurumi-char">
         <div id="itemPile" class="item-pile"></div>
       </div>
     </div>
@@ -142,7 +144,7 @@
     <div class="shop-panel">
       <div class="shop-header">
         <h2>🛍️ 쿠루미의 상점</h2>
-        <div class="shop-coin"><img src="assets/img/coin.png" alt="코인"><span id="shopCoinText">0</span></div>
+        <div class="shop-coin"><img src="assets/img/coin.webp" alt="코인"><span id="shopCoinText">0</span></div>
         <div class="shop-timer"><span>⏰</span><span id="shopTimerText">45</span></div>
         <button id="btnCloseShop" class="btn-close">✕</button>
       </div>
@@ -156,12 +158,12 @@
   <!-- ─────────── 게임 오버 화면 ─────────── -->
   <section id="screenOver" class="screen">
     <div class="over-card">
-      <img id="overKurumi" class="kurumi-hero kurumi-sad" src="assets/img/kurumi_sad.png" alt="쿠루미">
+      <img id="overKurumi" class="kurumi-hero kurumi-sad" src="assets/img/kurumi_sad.webp" alt="쿠루미">
       <h2 id="overTitle" class="over-title">시간이 다 됐어요!</h2>
       <p id="overSub" class="over-sub">오늘 알바는 여기까지예요 😢</p>
       <div class="over-stats">
         <div class="stat-box">
-          <img src="assets/img/coin.png" class="mini-coin">
+          <img src="assets/img/coin.webp" class="mini-coin">
           <span id="finalCoins">0</span>
           <small>모은 코인</small>
         </div>

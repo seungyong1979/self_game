@@ -355,4 +355,6 @@ function toggleSound() {
     const muted = !SoundManager.getMuted();
     SoundManager.setMute(muted);
     btn.textContent = muted ? '🔇' : '🔊';
+    btn.setAttribute('aria-pressed', String(muted));
+    btn.setAttribute('aria-label', muted ? '소리 켜기' : '소리 끄기');
 }
