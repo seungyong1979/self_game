@@ -154,7 +154,7 @@
     playerGrid.innerHTML = '';
     state.players.forEach((player, index) => {
       const panel = document.createElement('div');
-      panel.className = `player-panel${player.isComputer ? ' computer-panel' : ''}`;
+      panel.className = `player-panel ${player.isComputer ? 'computer-panel' : 'human-panel'}`;
       panel.dataset.idx = index;
       panel.innerHTML = `
         <div class="player-header">

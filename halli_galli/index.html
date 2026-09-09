@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>🔔 우리 가족 할리갈리 — 1인용</title>
-<link rel="stylesheet" href="css/style.css?v=5" />
+<link rel="stylesheet" href="css/style.css?v=7" />
 <link rel="stylesheet" href="../shared/game-shell.css" />
 <script defer src="../shared/game-shell.js"></script>
 </head>
@@ -70,18 +70,20 @@
     </div>
 
     <div class="versus-banner" aria-label="나와 컴퓨터의 일대일 대결">
-      <span>내 카드</span>
-      <strong>1 : 1&nbsp; VS</strong>
-      <span>컴퓨터 카드 🤖</span>
+      <span>🤖 컴퓨터 카드 ↑</span>
+      <strong>1 : 1&nbsp; 맞대결</strong>
+      <span>↓ 내 카드</span>
     </div>
 
-    <div class="player-grid" id="playerGrid">
-      <!-- 플레이어 카드가 여기 동적으로 생성됩니다 -->
-    </div>
+    <div class="solo-board">
+      <div class="player-grid" id="playerGrid">
+        <!-- 플레이어 카드가 여기 동적으로 생성됩니다 -->
+      </div>
 
-    <div class="solo-controls">
-      <button id="playerBellBtn" class="player-bell-btn" aria-label="종치기">🔔 지금 종치기!</button>
-      <p>같은 얼굴의 합계가 정확히 5면 누르세요 · 키보드는 스페이스</p>
+      <div class="solo-controls">
+        <button id="playerBellBtn" class="player-bell-btn" aria-label="종치기">🔔 지금 종치기!</button>
+        <p>같은 얼굴의 합계가 정확히 5면 누르세요 · 키보드는 스페이스</p>
+      </div>
     </div>
 
     <div class="deck-info">
@@ -125,6 +127,6 @@
   <audio id="sfxBuzz" src="assets/sfx/buzzer_wrong.mp3" preload="auto"></audio>
   <audio id="sfxWin" src="assets/sfx/win_fanfare.mp3" preload="auto"></audio>
 
-  <script src="js/game.js?v=5"></script>
+  <script src="js/game.js?v=6"></script>
 </body>
 </html>

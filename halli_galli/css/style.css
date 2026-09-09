@@ -323,14 +323,38 @@ html, body {
   font-weight: 800;
   text-align: center;
 }
-.versus-banner span:first-child { color: #8fd3ff; text-align: left; }
-.versus-banner span:last-child { color: #b8a8ff; text-align: right; }
+.versus-banner span:first-child { color: #b8a8ff; text-align: left; }
+.versus-banner span:last-child { color: #8fd3ff; text-align: right; }
 .versus-banner strong {
   padding: 4px 12px;
   border-radius: 999px;
   background: linear-gradient(135deg, rgba(79,172,254,0.2), rgba(124,92,252,0.24));
   color: var(--text);
   font-size: 13px;
+}
+
+/* 마주 보는 1:1 보드: 컴퓨터 → 종 → 나 */
+.solo-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "computer"
+    "bell"
+    "human";
+  gap: 12px;
+  width: min(760px, 100%);
+  margin: 0 auto;
+}
+
+.solo-board .solo-grid {
+  display: contents;
+}
+.solo-board .computer-panel { grid-area: computer; }
+.solo-board .human-panel { grid-area: human; }
+.solo-board .solo-controls {
+  grid-area: bell;
+  position: relative;
+  bottom: auto;
 }
 
 /* 플레이어 그리드: 2~4명에 따라 반응형 */
@@ -510,11 +534,6 @@ html, body {
   overflow: hidden;
   box-shadow: 0 8px 20px rgba(0,0,0,0.35);
   position: relative;
-  animation: cardPop 0.3s ease-out;
-}
-@keyframes cardPop {
-  0% { transform: scale(0.5) rotate(-8deg); opacity: 0; }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
 .revealed-card .face-count-count {
@@ -621,6 +640,7 @@ html, body {
   .message-log { order: 3; flex-basis: 100%; font-size: 12px; }
   .versus-banner { padding: 6px 9px; gap: 5px; font-size: 10px; }
   .versus-banner strong { padding: 4px 8px; font-size: 11px; }
+  .solo-board { gap: 8px; }
   .game-status .btn-ghost { padding: 7px 10px; font-size: 11px; }
 
   .player-grid,
