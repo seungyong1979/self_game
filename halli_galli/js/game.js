@@ -11,6 +11,7 @@
   const FACE_MAP = Object.fromEntries(FACES.map((face) => [face.id, face]));
   const COUNT_DIST = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 5];
   const COMPUTER_INFO = { id: 'computer', name: '컴퓨터', emoji: '🤖' };
+  const THINK_TIME = 3000;
 
   let state = null;
   let selected = null;
@@ -132,6 +133,7 @@
       ended: false,
       bellLocked: false,
       turnLocked: false,
+      cardVisible: false,
     };
 
     setupScreen.classList.add('hidden');
@@ -161,6 +163,7 @@
             <span>${player.info.name}</span>
             <span class="role-badge">${player.isComputer ? '컴퓨터' : '나'}</span>
           </div>
+          ${player.isComputer ? '<span class="computer-state">기다리는 중</span>' : ''}
         </div>
         <div class="player-stats">
           <span>남은 카드 <b class="stat-deck">${player.deck.length}</b>장</span>
@@ -210,6 +213,16 @@
             <div class="face-count-count cnt-${top.count}" aria-hidden="true">${images}</div>
           </div>`;
       }
+
+      if (player.isComputer) {
+        const computerState = panel.querySelector('.computer-state');
+        const isThinking = !state.ended && (state.turnIdx === 1 || state.cardVisible);
+        computerState.classList.toggle('thinking', isThinking);
+        if (state.ended) computerState.textContent = '대결 종료';
+        else if (state.cardVisible) computerState.textContent = '💭 생각 중…';
+        else if (state.turnIdx === 1) computerState.textContent = '💭 카드 고르는 중…';
+        else computerState.textContent = '차례 기다리는 중';
+      }
     });
 
     const current = state.players[state.turnIdx];
@@ -217,12 +230,20 @@
       turnAvatar.style.backgroundImage = '';
       turnAvatar.textContent = '🤖';
       turnAvatar.classList.add('emoji-avatar');
-      turnText.textContent = state.ended ? '게임 종료!' : '컴퓨터가 카드를 고르는 중...';
+      turnText.textContent = state.ended
+        ? '게임 종료!'
+        : state.cardVisible
+          ? '💭 컴퓨터 생각 중… · 3초 동안 천천히 세어보세요'
+          : '💭 컴퓨터 생각 중… · 카드를 고르고 있어요';
     } else {
       turnAvatar.textContent = '';
       turnAvatar.style.backgroundImage = `url(${current.info.circle})`;
       turnAvatar.classList.remove('emoji-avatar');
-      turnText.textContent = state.ended ? '게임 종료!' : '내 차례! 내 카드 더미를 눌러요';
+      turnText.textContent = state.ended
+        ? '게임 종료!'
+        : state.cardVisible
+          ? '내가 공개한 카드예요 · 3초 동안 천천히 세어보세요'
+          : '내 차례! 내 카드 더미를 눌러요';
     }
     playerBellBtn.disabled = state.ended || state.bellLocked;
     const remaining = state.players.reduce((sum, player) => sum + player.deck.length, 0);
@@ -254,9 +275,11 @@
     }
 
     const computerTurn = state.turnIdx === 1;
+    state.cardVisible = false;
     state.turnLocked = computerTurn;
     renderAll();
     if (computerTurn) {
+      logMessage('💭 컴퓨터가 생각 중이에요. 곧 카드를 뒤집어요.');
       turnTimer = window.setTimeout(() => flipCard(1), delay + Math.random() * 450);
     }
   }
@@ -272,10 +295,10 @@
     if (!player.deck.length) return;
     window.clearTimeout(turnTimer);
     state.turnLocked = true;
+    state.cardVisible = true;
     player.pile.push(player.deck.shift());
     playSfx(sfxFlip);
-    logMessage(`${player.isComputer ? '컴퓨터가' : '내가'} 카드를 뒤집었어요. 얼굴 수를 세어보세요!`);
-    setNextTurn();
+    logMessage(`${player.isComputer ? '컴퓨터가' : '내가'} 카드를 뒤집었어요. 3초 동안 천천히 얼굴 수를 세어보세요!`);
     renderAll();
     openBellWindow();
   }
@@ -297,7 +320,7 @@
   function computerSkill() {
     const scoreGap = state.players[0].score - state.players[1].score;
     const accuracy = Math.max(0.55, Math.min(0.8, 0.68 + scoreGap * 0.01));
-    const reaction = Math.max(1350, Math.min(2550, 1900 - scoreGap * 12)) + Math.random() * 850;
+    const reaction = Math.max(THINK_TIME, Math.min(3800, 3300 - scoreGap * 10)) + Math.random() * 700;
     return { accuracy, reaction };
   }
 
@@ -310,24 +333,29 @@
       if (Math.random() < skill.accuracy) {
         aiBellTimer = window.setTimeout(() => resolveBell(1), skill.reaction);
       } else {
-        turnTimer = window.setTimeout(() => finishCardWindow('컴퓨터가 정답을 놓쳤어요. 다음 카드로 넘어가요!'), 3500);
+        turnTimer = window.setTimeout(() => finishCardWindow('컴퓨터가 정답을 놓쳤어요. 다음 카드로 넘어가요!'), 5000);
       }
       return;
     }
 
     if (Math.random() < 0.055) {
-      aiBellTimer = window.setTimeout(() => resolveBell(1), 450 + Math.random() * 500);
+      aiBellTimer = window.setTimeout(() => resolveBell(1), THINK_TIME + 50 + Math.random() * 500);
+    } else {
+      turnTimer = window.setTimeout(() => finishCardWindow('정답이 없어요. 다음 차례!'), THINK_TIME);
     }
-    turnTimer = window.setTimeout(() => finishCardWindow('정답이 없어요. 다음 차례!'), 1050);
   }
 
   function finishCardWindow(message) {
     if (!state || state.ended || state.bellLocked) return;
     clearTimers();
     state.turnLocked = false;
+    state.cardVisible = false;
     logMessage(message);
     if (noOneCanFlip()) endGame();
-    else scheduleCurrentTurn(650);
+    else {
+      setNextTurn();
+      scheduleCurrentTurn(650);
+    }
   }
 
   function givePenalty(ringerIndex) {
@@ -350,6 +378,7 @@
     clearTimers();
     state.bellLocked = true;
     state.turnLocked = true;
+    state.cardVisible = false;
     const ringer = state.players[ringerIndex];
 
     if (hasMatch()) {
@@ -373,8 +402,11 @@
     turnTimer = window.setTimeout(() => {
       state.turnLocked = false;
       if (noOneCanFlip()) endGame();
-      else scheduleCurrentTurn(700);
-    }, 1050);
+      else {
+        setNextTurn();
+        scheduleCurrentTurn(700);
+      }
+    }, 1300);
   }
 
   playerBellBtn.addEventListener('click', () => resolveBell(0));
