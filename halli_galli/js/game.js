@@ -11,7 +11,7 @@
   const FACE_MAP = Object.fromEntries(FACES.map((face) => [face.id, face]));
   const COUNT_DIST = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 5];
   const COMPUTER_INFO = { id: 'computer', name: '컴퓨터', emoji: '🤖' };
-  const THINK_TIME = 3000;
+  const THINK_TIME = 2000;
 
   let state = null;
   let selected = null;
@@ -233,7 +233,7 @@
       turnText.textContent = state.ended
         ? '게임 종료!'
         : state.cardVisible
-          ? '💭 컴퓨터 생각 중… · 3초 동안 천천히 세어보세요'
+          ? '💭 컴퓨터 생각 중… · 2초 동안 얼굴 수를 확인해보세요'
           : '💭 컴퓨터 생각 중… · 카드를 고르고 있어요';
     } else {
       turnAvatar.textContent = '';
@@ -242,7 +242,7 @@
       turnText.textContent = state.ended
         ? '게임 종료!'
         : state.cardVisible
-          ? '내가 공개한 카드예요 · 3초 동안 천천히 세어보세요'
+          ? '내가 공개한 카드예요 · 2초 동안 얼굴 수를 확인해보세요'
           : '내 차례! 내 카드 더미를 눌러요';
     }
     playerBellBtn.disabled = state.ended || state.bellLocked;
@@ -298,7 +298,7 @@
     state.cardVisible = true;
     player.pile.push(player.deck.shift());
     playSfx(sfxFlip);
-    logMessage(`${player.isComputer ? '컴퓨터가' : '내가'} 카드를 뒤집었어요. 3초 동안 천천히 얼굴 수를 세어보세요!`);
+    logMessage(`${player.isComputer ? '컴퓨터가' : '내가'} 카드를 뒤집었어요. 2초 동안 얼굴 수를 확인해보세요!`);
     renderAll();
     openBellWindow();
   }
@@ -320,7 +320,7 @@
   function computerSkill() {
     const scoreGap = state.players[0].score - state.players[1].score;
     const accuracy = Math.max(0.55, Math.min(0.8, 0.68 + scoreGap * 0.01));
-    const reaction = Math.max(THINK_TIME, Math.min(3800, 3300 - scoreGap * 10)) + Math.random() * 700;
+    const reaction = Math.max(THINK_TIME, Math.min(3000, 2300 - scoreGap * 8)) + Math.random() * 600;
     return { accuracy, reaction };
   }
 
@@ -333,7 +333,7 @@
       if (Math.random() < skill.accuracy) {
         aiBellTimer = window.setTimeout(() => resolveBell(1), skill.reaction);
       } else {
-        turnTimer = window.setTimeout(() => finishCardWindow('컴퓨터가 정답을 놓쳤어요. 다음 카드로 넘어가요!'), 5000);
+        turnTimer = window.setTimeout(() => finishCardWindow('컴퓨터가 정답을 놓쳤어요. 다음 카드로 넘어가요!'), 3500);
       }
       return;
     }
